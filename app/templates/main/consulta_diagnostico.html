@@ -1,0 +1,129 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Consulta Médica - Diagnóstico{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Consulta Médica - {{ consulta.clinica.nombre }}</h1>
+    
+    <!-- Botones de selección de clínica -->
+    <div class="mb-4">
+        <div class="btn-group" role="group" aria-label="Selección de Clínica">
+            <a href="{{ url_for('main.actualizar_estado_clinica', clinica_id=1) }}?redirect_to=consulta_diagnostico&consulta_id={{ consulta.id }}" class="btn btn-outline-primary {% if consulta.clinica_id == 1 %}active{% endif %}">Clínica 1</a>
+            <a href="{{ url_for('main.actualizar_estado_clinica', clinica_id=2) }}?redirect_to=consulta_diagnostico&consulta_id={{ consulta.id }}" class="btn btn-outline-primary {% if consulta.clinica_id == 2 %}active{% endif %}">Clínica 2</a>
+        </div>
+        <small class="text-muted ms-2">Seleccione la clínica donde está atendiendo</small>
+    </div>
+    
+    <div class="row">
+        <!-- Columna izquierda - Signos vitales -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">SIGNOS VITALES ACTUALES</h5>
+                </div>
+                <div class="card-body">
+                    <h4 class="text-center mb-3">Carlos López</h4>
+                    <p class="text-center text-muted">32 AÑOS - MASCULINO</p>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Presión Arterial</label>
+                                <input type="text" class="form-control" value="140/90 mmHg" readonly>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Saturación</label>
+                                <input type="text" class="form-control" value="98%" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Temperatura</label>
+                                <input type="text" class="form-control" value="36.8" readonly>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Frec. Resp.</label>
+                                <input type="text" class="form-control" value="18 rpm" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Frec. Card.</label>
+                                <input type="text" class="form-control" value="18 rpm" readonly>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label>Glucosa</label>
+                                <input type="text" class="form-control" value="112 mg/dl" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Columna derecha - Tabs de consulta -->
+        <div class="col-md-8">
+            <ul class="nav nav-tabs" id="consultaTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="datos-tab" data-bs-toggle="tab" data-bs-target="#datos" type="button" role="tab" aria-controls="datos" aria-selected="false">Datos Generales</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="motivo-tab" data-bs-toggle="tab" data-bs-target="#motivo" type="button" role="tab" aria-controls="motivo" aria-selected="false">Motivo Consulta</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="diagnostico-tab" data-bs-toggle="tab" data-bs-target="#diagnostico" type="button" role="tab" aria-controls="diagnostico" aria-selected="true">Descripción</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="receta-tab" data-bs-toggle="tab" data-bs-target="#receta" type="button" role="tab" aria-controls="receta" aria-selected="false">Receta</button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="consultaTabsContent">
+                <!-- Tab Diagnóstico -->
+                <div class="tab-pane fade show active" id="diagnostico" role="tabpanel" aria-labelledby="diagnostico-tab">
+                    <form method="post" action="">
+                        {{ form.hidden_tag() }}
+                        <div class="form-group mb-4 mt-3">
+                            {{ form.descripcion.label(class="form-label") }}
+                            {{ form.descripcion(class="form-control", rows=6) }}
+                            {% for error in form.descripcion.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            {{ form.laboratorio.label(class="form-label") }}
+                            {{ form.laboratorio(class="form-control", rows=6) }}
+                            {% for error in form.laboratorio.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="text-end">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <button class="btn btn-warning">CANCELAR</button>
+                <button class="btn btn-success">GUARDAR</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

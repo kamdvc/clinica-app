@@ -1,0 +1,191 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Listado de Pacientes{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('termino_busqueda');
+        const searchButton = document.getElementById('btnBuscar');
+        const searchResults = document.createElement('div');
+        searchResults.className = 'autocomplete-results';
+        searchResults.style.display = 'none';
+        searchResults.style.position = 'absolute';
+        searchResults.style.zIndex = '1000';
+        searchResults.style.backgroundColor = '#fff';
+        searchResults.style.border = '1px solid #ddd';
+        searchResults.style.borderRadius = '4px';
+        searchResults.style.width = searchInput.offsetWidth + 'px';
+        searchResults.style.maxHeight = '200px';
+        searchResults.style.overflowY = 'auto';
+        searchInput.parentNode.style.position = 'relative';
+        searchInput.parentNode.appendChild(searchResults);
+
+        // Agregar evento de clic al botón de búsqueda
+        searchButton.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevenir el comportamiento predeterminado
+            const form = document.querySelector('form');
+            form.submit(); // Enviar el formulario manualmente
+        });
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            if (query.length < 2) {
+                searchResults.style.display = 'none';
+                return;
+            }
+
+            fetch(`/api/pacientes/buscar?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    searchResults.innerHTML = '';
+                    if (data.length > 0) {
+                        data.forEach(paciente => {
+                            const item = document.createElement('div');
+                            item.className = 'autocomplete-item';
+                            item.style.padding = '8px 12px';
+                            item.style.cursor = 'pointer';
+                            item.style.borderBottom = '1px solid #eee';
+                            item.innerHTML = `<strong>${paciente.nombre_completo}</strong> (ID: ${paciente.id}) - ${paciente.edad} años, ${paciente.sexo}`;
+                            item.addEventListener('click', function() {
+                                searchInput.value = paciente.nombre_completo;
+                                searchResults.style.display = 'none';
+                                // Enviar el formulario automáticamente
+                                document.querySelector('form').submit();
+                            });
+                            item.addEventListener('mouseover', function() {
+                                this.style.backgroundColor = '#f0f0f0';
+                            });
+                            item.addEventListener('mouseout', function() {
+                                this.style.backgroundColor = '#fff';
+                            });
+                            searchResults.appendChild(item);
+                        });
+                        searchResults.style.display = 'block';
+                    } else {
+                        searchResults.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error en la búsqueda:', error);
+                    searchResults.style.display = 'none';
+                });
+        });
+
+        // Ocultar resultados cuando se hace clic fuera
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        // Permitir enviar el formulario con la tecla Enter
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.querySelector('form').submit();
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Listado de Pacientes</h1>
+    
+    <!-- Formulario de búsqueda -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Buscar Pacientes</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('pacientes.pacientes_lista') }}">
+                {{ form.hidden_tag() }}
+                <div class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        {{ form.termino_busqueda(class="form-control", placeholder="Nombre o ID del paciente") }}
+                    </div>
+                    <div class="col-auto">
+                        {{ form.submit(class="btn btn-primary", id="btnBuscar") }}
+                    </div>
+                    <div class="col-auto">
+                        <a href="{{ url_for('pacientes.pacientes_lista') }}" class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Pacientes Registrados</h5>
+            <a href="{{ url_for('pacientes.paciente_nuevo') }}" class="btn btn-light btn-sm">Nuevo Paciente</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Edad</th>
+                            <th>Sexo</th>
+                            <th>Expediente</th>
+                            <th>Fecha Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paciente in pacientes %}
+                        <tr>
+                            <td>{{ paciente.nombre_completo }}</td>
+                            <td>{{ paciente.edad }} años</td>
+                            <td>{{ paciente.sexo }}</td>
+                            <td>
+                                {% if paciente.expediente %}
+                                <span class="badge bg-success">Sí</span>
+                                {% else %}
+                                <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ paciente.fecha_registro.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('pacientes.paciente_detalle', paciente_id=paciente.id) }}" class="btn btn-sm btn-info">Editar</a>
+                                    <a href="{{ url_for('pacientes.registrar_signos_vitales', paciente_id=paciente.id) }}" class="btn btn-sm btn-warning">Signos Vitales</a>
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#eliminarPacienteModal{{ paciente.id }}">
+                                        Eliminar
+                                    </button>
+                                </div>
+                                
+                                <!-- Modal de confirmación para eliminar -->
+                                <div class="modal fade" id="eliminarPacienteModal{{ paciente.id }}" tabindex="-1" aria-labelledby="eliminarPacienteModalLabel{{ paciente.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title" id="eliminarPacienteModalLabel{{ paciente.id }}">Confirmar eliminación</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>¿Está seguro que desea eliminar al paciente <strong>{{ paciente.nombre_completo }}</strong>?</p>
+                                                <p class="text-danger"><small>Esta acción no se puede deshacer.</small></p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <form action="{{ url_for('pacientes.eliminar_paciente', paciente_id=paciente.id) }}" method="POST" style="display: inline;">
+                                                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends 'main/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="mb-4">Consulta Médica - Clinica 1</h2>
+            
+            <div class="row">
+                <!-- Left Column - Vital Signs -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">SIGNOS VITALES ACTUALES</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-center mb-4">
+                                <h4 class="mb-2">{{ paciente.nombre_completo }}</h4>
+                                <span class="badge bg-info text-white px-3 py-2">{{ paciente.edad }} AÑOS • {{ paciente.sexo }}</span>
+                            </div>
+                            
+                            <form method="post" action="">
+                                {{ form.hidden_tag() }}
+                                
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3 text-center">
+                                            <div class="text-muted small mb-1">Presión arterial</div>
+                                            <div class="h5 mb-0">{{ form.presion_arterial(class="form-control-plaintext text-center border-0 p-0", placeholder="140/90 mmHg") }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3 text-center">
+                                            <div class="text-muted small mb-1">Saturación</div>
+                                            <div class="h5 mb-0">{{ form.saturacion(class="form-control-plaintext text-center border-0 p-0", placeholder="98%") }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3 text-center">
+                                            <div class="text-muted small mb-1">Temperatura</div>
+                                            <div class="h5 mb-0">{{ form.temperatura(class="form-control-plaintext text-center border-0 p-0", placeholder="36.8") }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3 text-center">
+                                            <div class="text-muted small mb-1">Frecuencia resp.</div>
+                                            <div class="h5 mb-0">{{ form.frecuencia_respiratoria(class="form-control-plaintext text-center border-0 p-0", placeholder="18 rpm") }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3 text-center">
+                                            <div class="text-muted small mb-1">Frecuencia card.</div>
+                                            <div class="h5 mb-0">{{ form.frecuencia_cardiaca(class="form-control-plaintext text-center border-0 p-0", placeholder="18 rpm") }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="bg-light rounded p-3 text-center">
+                                            <div class="text-muted small mb-1">Glucosa</div>
+                                            <div class="h5 mb-0">{{ form.glucosa(class="form-control-plaintext text-center border-0 p-0", placeholder="112 mg/dl") }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>0    
+                </div>
+                
+                <!-- Right Column - Patient Information -->
+                <div class="col-md-8">
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="datos-tab" data-bs-toggle="tab" data-bs-target="#datos" type="button" role="tab">Datos Generales</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="motivo-tab" data-bs-toggle="tab" data-bs-target="#motivo" type="button" role="tab">Motivo Consulta</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="diagnostico-tab" data-bs-toggle="tab" data-bs-target="#diagnostico" type="button" role="tab">Diagnóstico</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="receta-tab" data-bs-toggle="tab" data-bs-target="#receta" type="button" role="tab">Receta</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="antecedentes-tab" data-bs-toggle="tab" data-bs-target="#antecedentes" type="button" role="tab">Antecedentes</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content pt-3" id="myTabContent">
+                        <div class="tab-pane fade show active" id="datos" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Estado civil</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Religión</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Escolaridad</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Ocupación</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Dirección</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Procedencia</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Teléfono</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Número de expediente</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="motivo" role="tabpanel">
+                            <textarea class="form-control" rows="5" placeholder="Ingrese el motivo de la consulta"></textarea>
+                        </div>
+                        <div class="tab-pane fade" id="diagnostico" role="tabpanel">
+                            <textarea class="form-control" rows="5" placeholder="Ingrese el diagnóstico"></textarea>
+                        </div>
+                        <div class="tab-pane fade" id="receta" role="tabpanel">
+                            <textarea class="form-control" rows="5" placeholder="Ingrese la receta médica"></textarea>
+                        </div>
+                        <div class="tab-pane fade" id="antecedentes" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0">Antecedentes Fisiológicos</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <textarea class="form-control" rows="3" placeholder="Ingrese los antecedentes fisiológicos"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0">Antecedentes Patológicos</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <textarea class="form-control" rows="3" placeholder="Ingrese los antecedentes patológicos"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0">Antecedentes Familiares</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <textarea class="form-control" rows="3" placeholder="Ingrese los antecedentes familiares"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0">Antecedentes Toxicológicos</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <textarea class="form-control" rows="3" placeholder="Ingrese los antecedentes toxicológicos"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="card">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0">Factores de Riesgo</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <textarea class="form-control" rows="3" placeholder="Ingrese los factores de riesgo"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn text-white" style="background-color: #FF8A00;">CANCELAR</button>
+                    <button type="submit" class="btn text-white" style="background-color: #FFB800;">GUARDAR</button>
+                </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

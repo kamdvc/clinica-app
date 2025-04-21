@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear una cuenta nueva - Sistema Clínico</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        .register-container {
+            max-width: 400px;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #39a2db;
+            border-color: #39a2db;
+        }
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 text-center">
+                <div class="register-container">
+                    <h1>Crear una cuenta nueva</h1>
+                    <p class="text-muted">¿Ya estás registrado? <a href="{{ url_for('auth.login') }}">Inicia sesión aquí</a>.</p>
+                    
+                    {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                    <div class="alert alert-danger">
+                        {% for message in messages %}
+                        <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('auth.register') }}">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3 text-start">
+                            <label for="nombre_completo" class="form-label">NOMBRE COMPLETO</label>
+                            {{ form.nombre_completo(class="form-control", id="nombre_completo") }}
+                            {% for error in form.nombre_completo.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label for="usuario" class="form-label">USUARIO</label>
+                            {{ form.usuario(class="form-control", id="usuario") }}
+                            {% for error in form.usuario.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label for="password" class="form-label">CONTRASEÑA</label>
+                            {{ form.password(class="form-control", id="password") }}
+                            {% for error in form.password.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label for="password2" class="form-label">CONFIRMAR CONTRASEÑA</label>
+                            {{ form.password2(class="form-control", id="password2") }}
+                            {% for error in form.password2.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="d-grid gap-2 mt-4">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

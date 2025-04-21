@@ -1,0 +1,59 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Reportes - Sistema Clínico{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Reportes del Sistema</h1>
+    
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Reporte de Consultas</h5>
+                    <p class="card-text">Listado de todas las consultas realizadas en el sistema.</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('reportes.reporte_consultas') }}" class="btn btn-primary">Ver Reporte</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Reporte de Pacientes</h5>
+                    <p class="card-text">Listado de todos los pacientes registrados en el sistema.</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('reportes.reporte_pacientes') }}" class="btn btn-primary">Ver Reporte</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Reporte de Clínicas</h5>
+                    <p class="card-text">Estadísticas de uso de las clínicas disponibles.</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('reportes.reporte_clinicas') }}" class="btn btn-primary">Ver Reporte</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Reporte Diario</h5>
+                    <p class="card-text">Consultas realizadas durante el día actual.</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('reportes.reporte_diario') }}" class="btn btn-primary">Ver Reporte</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

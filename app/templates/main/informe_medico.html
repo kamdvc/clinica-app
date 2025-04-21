@@ -1,0 +1,50 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Informe Médico{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Consulta Médica - Clinica 1</h1>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="text-center mb-4">Informe Médico del Paciente</h2>
+                    
+                    <div class="mb-4">
+                        <p><strong>Paciente:</strong> Luis Lopez</p>
+                        <p><strong>Edad:</strong> 56 años</p>
+                        <p><strong>Número de expediente:</strong></p>
+                        <p><strong>Género:</strong> Masculino</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>Diagnostico</h5>
+                        <div class="border p-3 rounded mb-3" style="min-height: 100px;"></div>
+                    </div>
+                    
+                    <div class="mb-5">
+                        <h5>Plan de tratamiento:</h5>
+                        <div class="border p-3 rounded mb-3" style="min-height: 100px;"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p><strong>FECHA:</strong> 24/02/2025</p>
+                        </div>
+                        <div>
+                            <p><strong>Médico:</strong> Dr. Lopez</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-5">
+                        <button class="btn btn-warning">EXPORTAR PDF</button>
+                        <button class="btn btn-primary">IMPRIMIR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

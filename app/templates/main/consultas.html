@@ -1,0 +1,329 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Consultas Médicas{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="card">
+        <div class="card-body">
+            <h1 class="card-title mb-4">Consultas Médicas</h1>
+        <div class="row">
+                <!-- Vital Signs Panel -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">SIGNOS VITALES ACTUALES</h6>
+                        </div>
+                        <div class="card-body text-center">
+                            <h4 class="mb-2" id="patient-name">{{ consulta.paciente.nombre_completo if consulta else 'Seleccione un paciente' }}</h4>
+                            <p class="text-muted mb-3">
+                                <span id="patient-age">{{ consulta.paciente.edad if consulta else '--' }} AÑOS</span> • 
+                                <span id="patient-gender">{{ consulta.paciente.genero if consulta else '--' }}</span>
+                            </p>
+                            
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <small class="d-block text-muted">Presión arterial</small>
+                                        <strong>{{ consulta.signos_vitales.presion_arterial if consulta and consulta.signos_vitales else '--' }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <small class="d-block text-muted">Saturación</small>
+                                        <strong>{{ consulta.signos_vitales.saturacion if consulta and consulta.signos_vitales else '--' }}%</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <small class="d-block text-muted">Temperatura</small>
+                                        <strong>{{ consulta.signos_vitales.temperatura if consulta and consulta.signos_vitales else '--' }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <small class="d-block text-muted">Frecuencia resp.</small>
+                                        <strong>{{ consulta.signos_vitales.frecuencia_respiratoria if consulta and consulta.signos_vitales else '--' }} rpm</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <small class="d-block text-muted">Frec. cardíaca</small>
+                                        <strong>{{ consulta.signos_vitales.frecuencia_cardiaca if consulta and consulta.signos_vitales else '--' }} rpm</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-2">
+                                        <small class="d-block text-muted">Glucosa</small>
+                                        <strong>{{ consulta.signos_vitales.glucosa if consulta and consulta.signos_vitales else '--' }} mg/dl</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Main Content -->
+                <div class="col-md-9">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <ul class="nav nav-tabs card-header-tabs">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="datos-generales-tab" data-bs-toggle="tab" data-bs-target="#datos-generales" type="button" role="tab" aria-controls="datos-generales" aria-selected="true">Datos Generales</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="motivo-consulta-tab" data-bs-toggle="tab" data-bs-target="#motivo-consulta" type="button" role="tab" aria-controls="motivo-consulta" aria-selected="false">Motivo Consulta</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="diagnostico-tab" data-bs-toggle="tab" data-bs-target="#diagnostico" type="button" role="tab" aria-controls="diagnostico" aria-selected="false">Diagnóstico</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="receta-tab" data-bs-toggle="tab" data-bs-target="#receta" type="button" role="tab" aria-controls="receta" aria-selected="false">Receta</button>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                <div class="tab-content">
+                                    <!-- Datos Generales -->
+                                    <div class="tab-pane fade show active" id="datos-generales">
+                                        <div class="row mb-3">
+                                            <div class="col-md-3">
+                                                <label class="form-label">Estado civil</label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Religión</label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Escolaridad</label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Ocupación</label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Dirección</label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Procedencia</label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Teléfono</label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Número de expediente</label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Motivo Consulta -->
+                                    <div class="tab-pane fade" id="motivo-consulta">
+                                        <div class="mb-3">
+                                            <label class="form-label">Motivo de Consulta</label>
+                                            <textarea class="form-control" rows="2"></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Historia de la Enfermedad</label>
+                                            <textarea class="form-control" rows="2"></textarea>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">REVISIÓN POR SISTEMAS</label>
+                                            <div class="border p-2">
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <span class="badge bg-dark">Cabeza</span>
+                                                    <span class="badge bg-secondary">Ojos</span>
+                                                    <span class="badge bg-secondary">Oídos</span>
+                                                    <span class="badge bg-secondary">Nariz</span>
+                                                    <span class="badge bg-secondary">Boca</span>
+                                                    <span class="badge bg-secondary">Cuello</span>
+                                                    <span class="badge bg-secondary">Mamas</span>
+                                                    <span class="badge bg-secondary">Respiratorio</span>
+                                                    <span class="badge bg-secondary">Cardíaco</span>
+                                                    <span class="badge bg-secondary">Gastrointestinal</span>
+                                                    <span class="badge bg-secondary">Genitourinario</span>
+                                                    <span class="badge bg-secondary">Musc.</span>
+                                                    <span class="badge bg-secondary">Neuro.</span>
+                                                    <span class="badge bg-secondary">Piel</span>
+                                                </div>
+                                                <textarea class="form-control mt-2" rows="3"></textarea>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Antecedentes</label>
+                                            <div class="border p-3">
+                                                <h5 class="mb-3"><span class="border-bottom border-3 border-primary">Gineco-Obstetricos</span> <span class="ms-2">Fisiológicos</span> <span class="ms-2">Patológicos</span> <span class="ms-2">Heredo Familiares</span> <span class="ms-2">Toxicológicos</span> <span class="ms-2">Fact. de riesgo</span></h5>
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Gestas</label>
+                                                        <input type="text" class="form-control">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Partos</label>
+                                                        <input type="text" class="form-control">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Abortos</label>
+                                                        <input type="text" class="form-control">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Hijos vivos</label>
+                                                        <input type="text" class="form-control">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Hijos muertos</label>
+                                                        <input type="text" class="form-control">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <label class="form-label">Fecha ultima regla</label>
+                                                        <input type="date" class="form-control">
+                                                    </div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <textarea class="form-control" rows="5" placeholder="Antecedentes..."></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Examen Físico</label>
+                                            <div class="row g-2">
+                                                <div class="col-md-1">
+                                                    <label class="form-label small">P/A</label>
+                                                    <input type="text" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <label class="form-label small">FR</label>
+                                                    <input type="text" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <label class="form-label small">T</label>
+                                                    <input type="text" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small">PESO</label>
+                                                    <input type="text" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small">TALLA</label>
+                                                    <input type="text" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <label class="form-label small">FC</label>
+                                                    <input type="text" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small">SPO</label>
+                                                    <input type="text" class="form-control form-control-sm">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label small">IMC</label>
+                                                    <input type="text" class="form-control form-control-sm">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Diagnóstico -->
+                                    <div class="tab-pane fade" id="diagnostico" role="tabpanel" aria-labelledby="diagnostico-tab">
+                                        <div class="form-group">
+                                            <label for="descripcion">Descripción:</label>
+                                            <textarea class="form-control" id="descripcion" rows="4"></textarea>
+                                        </div>
+                                        <div class="form-group mt-3">
+                                            <label for="laboratorio">Laboratorio:</label>
+                                            <textarea class="form-control" id="laboratorio" rows="4"></textarea>
+                                        </div>
+
+                                    </div>
+                                    <div class="tab-pane fade" id="diagnostico">
+                                        <div class="mb-3">
+                                            <label class="form-label">Diagnóstico</label>
+                                            <textarea class="form-control" rows="4"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Receta -->
+                                    <div class="tab-pane fade" id="receta">
+                                        <div class="container">
+                                            <h2 class="text-center mb-4">RECETA MÉDICA</h2>
+                                            <p class="text-end">FECHA: 24/02/2025</p>
+                                            <div class="mb-3">
+                                                <p><strong>Paciente:</strong> Luis Lopez</p>
+                                                <p><strong>Edad:</strong> 56 años</p>
+                                                <p><strong>Diagnóstico:</strong> Hipertensión arterial alta</p>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label"><strong>Medicamento:</strong></label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label"><strong>Dosificación:</strong></label>
+                                                <input type="text" class="form-control">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label"><strong>Indicaciones:</strong></label>
+                                                <textarea class="form-control" rows="3"></textarea>
+                                            </div>
+                                            <div class="d-flex justify-content-between mt-4">
+                                                <button class="btn btn-primary px-4 d-block mx-auto" onclick="imprimirReceta()">IMPRIMIR</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-12 d-flex justify-content-between">
+                    <button class="btn btn-danger">CANCELAR</button>
+                    <button class="btn btn-warning text-white">GUARDAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab navigation
+        const tabLinks = document.querySelectorAll('.nav-link');
+        tabLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                
+                // Remove active class from all tabs and panes
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => {
+                    p.classList.remove('show', 'active');
+                });
+                
+                // Add active class to clicked tab and its pane
+                link.classList.add('active');
+                document.querySelector(targetId).classList.add('show', 'active');
+            });
+        });
+    });
+</script>
+{% endblock %}

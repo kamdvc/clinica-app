@@ -1,0 +1,37 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Estado de Clínicas{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Estado de Clínicas</h1>
+    
+    <div class="row">
+        {% for clinica in clinicas %}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header {% if clinica.disponible %}bg-success{% else %}bg-danger{% endif %} text-white">
+                    <h5 class="mb-0">{{ clinica.nombre }}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Estado actual: 
+                        <span class="badge {% if clinica.disponible %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if clinica.disponible %}Disponible{% else %}Ocupada{% endif %}
+                        </span>
+                    </p>
+                    {% if current_user.rol == 'medico' %}
+                    <form method="post" action="{{ url_for('main.actualizar_estado_clinica', clinica_id=clinica.id) }}">
+                        <input type="hidden" name="estado" value="{% if clinica.disponible %}0{% else %}1{% endif %}">
+                        <button type="submit" class="btn {% if clinica.disponible %}btn-danger{% else %}btn-success{% endif %}">
+                            {% if clinica.disponible %}Marcar como Ocupada{% else %}Marcar como Disponible{% endif %}
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

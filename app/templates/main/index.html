@@ -1,0 +1,77 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Inicio - Sistema Clínico{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Sistema Clínico - Facultad de Ciencias Médicas</h1>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Clínicas Disponibles</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for clinica in clinicas %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 {% if clinica.disponible %}border-success{% else %}border-danger{% endif %}">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ clinica.nombre }}</h5>
+                                    <p class="card-text">
+                                        {% if clinica.disponible %}
+                                        <span class="badge bg-success">Disponible</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Ocupada</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <a href="#" class="btn btn-sm btn-primary">Ver Detalles</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Resumen</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Consultas hoy:</span>
+                        <span class="badge bg-primary rounded-pill">12</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Pacientes en espera:</span>
+                        <span class="badge bg-warning rounded-pill">5</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Clínicas disponibles:</span>
+                        <span class="badge bg-success rounded-pill">3</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('main.recepcion') }}" class="btn btn-primary">Registrar Paciente</a>
+                        <a href="{{ url_for('main.consultas') }}" class="btn btn-success">Ver Consultas</a>
+                        <a href="{{ url_for('main.reportes') }}" class="btn btn-info">Generar Reportes</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

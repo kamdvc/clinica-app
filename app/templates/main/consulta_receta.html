@@ -1,0 +1,78 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Consulta Médica - Receta{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Consulta Médica - {{ consulta.clinica.nombre }}</h1>
+    
+    <!-- Botones de selección de clínica -->
+    <div class="mb-4">
+        <div class="btn-group" role="group" aria-label="Selección de Clínica">
+            <a href="{{ url_for('main.actualizar_estado_clinica', clinica_id=1) }}?redirect_to=consulta_receta&consulta_id={{ consulta.id }}" class="btn btn-outline-primary {% if consulta.clinica_id == 1 %}active{% endif %}">Clínica 1</a>
+            <a href="{{ url_for('main.actualizar_estado_clinica', clinica_id=2) }}?redirect_to=consulta_receta&consulta_id={{ consulta.id }}" class="btn btn-outline-primary {% if consulta.clinica_id == 2 %}active{% endif %}">Clínica 2</a>
+        </div>
+        <small class="text-muted ms-2">Seleccione la clínica donde está atendiendo</small>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="consultaTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="datos-tab" data-bs-toggle="tab" data-bs-target="#datos" type="button" role="tab" aria-controls="datos" aria-selected="false">Datos Generales</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="motivo-tab" data-bs-toggle="tab" data-bs-target="#motivo" type="button" role="tab" aria-controls="motivo" aria-selected="false">Motivo Consulta</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="diagnostico-tab" data-bs-toggle="tab" data-bs-target="#diagnostico" type="button" role="tab" aria-controls="diagnostico" aria-selected="false">Diagnóstico</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="receta-tab" data-bs-toggle="tab" data-bs-target="#receta" type="button" role="tab" aria-controls="receta" aria-selected="true">Receta</button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="consultaTabsContent">
+                <!-- Tab Receta -->
+                <div class="tab-pane fade show active" id="receta" role="tabpanel" aria-labelledby="receta-tab">
+                    <form method="post" action="">
+                        {{ form.hidden_tag() }}
+                        <div class="text-center my-4">
+                            <h2>RECETA MÉDICA</h2>
+                            <p class="mb-0">FECHA: {{ consulta.fecha_consulta.strftime('%d/%m/%Y') }}</p>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <p><strong>Paciente:</strong> {{ paciente.nombre_completo }}</p>
+                            <p><strong>Edad:</strong> {{ paciente.edad }} años</p>
+                            <p><strong>Diagnóstico:</strong> {{ consulta.diagnostico|truncate(100) }}</p>
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            {{ form.medicamentos.label(class="form-label") }}
+                            {{ form.medicamentos(class="form-control", rows=6, placeholder="Listar medicamentos con dosis y frecuencia") }}
+                            {% for error in form.medicamentos.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            {{ form.indicaciones.label(class="form-label") }}
+                            {{ form.indicaciones(class="form-control", rows=4, placeholder="Instrucciones adicionales para el paciente") }}
+                            {% for error in form.indicaciones.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-5">
+                            <a href="{{ url_for('main.consulta_diagnostico', consulta_id=consulta.id) }}" class="btn btn-warning">VOLVER</a>
+                            {{ form.submit(class="btn btn-success") }}
+                            <button type="button" class="btn btn-primary">IMPRIMIR</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

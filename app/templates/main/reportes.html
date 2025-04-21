@@ -1,0 +1,164 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Reportes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Reportes</h1>
+    
+    <!-- Estadísticas de Pacientes por Semana -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Pacientes Atendidos por Semana Febrero 2024</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Semana</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Semana 1 (3-7 de febrero)</td>
+                            <td>11</td>
+                        </tr>
+                        <tr>
+                            <td>Semana 2 (10-14 de febrero)</td>
+                            <td>17</td>
+                        </tr>
+                        <tr>
+                            <td>Semana 3 (17-21 de febrero)</td>
+                            <td>27</td>
+                        </tr>
+                        <tr>
+                            <td>Semana 4 (24-28 de febrero)</td>
+                            <td>26</td>
+                        </tr>
+                        <tr class="table-info">
+                            <td><strong>Total</strong></td>
+                            <td><strong>81</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribución por Género y Edad -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Distribución por Género</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <p>Masculino: 29 pacientes (36%)</p>
+                        <p>Femenino: 52 pacientes (64%)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Rango de Edades</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr><td>0-5 años</td><td>8 pacientes</td></tr>
+                                <tr><td>6-10 años</td><td>6 pacientes</td></tr>
+                                <tr><td>11-15 años</td><td>6 pacientes</td></tr>
+                                <tr><td>21-25 años</td><td>6 pacientes</td></tr>
+                                <tr><td>56-60 años</td><td>8 pacientes</td></tr>
+                                <!-- Otros rangos de edad pueden ser expandidos al hacer clic -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enfermedades Atendidas -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0">Enfermedades Atendidas</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Enfermedad</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Hipertensión</td><td>6</td></tr>
+                        <tr><td>Resfriado común</td><td>5</td></tr>
+                        <tr><td>Anemia</td><td>4</td></tr>
+                        <tr><td>Vaginosis</td><td>4</td></tr>
+                        <tr><td>Otitis media</td><td>4</td></tr>
+                        <tr><td>Lumbago</td><td>4</td></tr>
+                        <!-- Otras enfermedades pueden ser expandidas -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Problemas Respiratorios -->
+    <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">Problemas Respiratorios</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Condición</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Resfriado Común</td><td>5</td></tr>
+                        <tr><td>Tos Productiva</td><td>2</td></tr>
+                        <tr><td>Neumonía Atípica</td><td>2</td></tr>
+                        <tr><td>EPOC</td><td>1</td></tr>
+                        <tr><td>Bronquitis</td><td>1</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="d-flex justify-content-end mb-4">
+        <button class="btn btn-primary me-2" onclick="window.print()"><i class="fas fa-print"></i> Imprimir Reporte</button>
+        <button class="btn btn-success" onclick="exportToPDF()"><i class="fas fa-file-pdf"></i> Exportar a PDF</button>
+    </div>
+</div>
+
+<!-- Script para exportar a PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function exportToPDF() {
+    const element = document.querySelector('.container-fluid');
+    const opt = {
+        margin: 1,
+        filename: 'reporte_clinico.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+}
+</script>
+{% endblock %}

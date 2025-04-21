@@ -1,0 +1,206 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Estadísticas Clínicas - Sistema Clínico{% endblock %}
+
+{% block content %}
+<div class="container-fluid" id="report-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Estadísticas Clínicas Shororagua</h1>
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+            <button class="btn btn-success" onclick="exportToPDF()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+        </div>
+    </div>
+
+    <!-- Pacientes por Semana -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Pacientes Atendidos por Semana</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Semana</th>
+                            <th>Cantidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Semana 1 (3-7 de febrero)</td>
+                            <td>11</td>
+                        </tr>
+                        <tr>
+                            <td>Semana 2 (10-14 de febrero)</td>
+                            <td>17</td>
+                        </tr>
+                        <tr>
+                            <td>Semana 3 (17-21 de febrero)</td>
+                            <td>27</td>
+                        </tr>
+                        <tr>
+                            <td>Semana 4 (24-28 de febrero)</td>
+                            <td>26</td>
+                        </tr>
+                        <tr class="table-info">
+                            <td><strong>Total</strong></td>
+                            <td><strong>81</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribución por Género -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Distribución por Género</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="genderChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Rango de Edades</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="ageChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enfermedades Atendidas -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Enfermedades Atendidas</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="diseasesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Problemas por Sistemas -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Problemas por Sistemas</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="systemsChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    // Función para exportar a PDF
+    function exportToPDF() {
+        const element = document.getElementById('report-content');
+        const opt = {
+            margin: 1,
+            filename: 'reporte_clinico.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+
+    // Gráfico de Género
+    const genderCtx = document.getElementById('genderChart').getContext('2d');
+    new Chart(genderCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Masculino', 'Femenino'],
+            datasets: [{
+                data: [36, 64],
+                backgroundColor: ['#36A2EB', '#FF6384']
+            }]
+        }
+    });
+
+    // Gráfico de Edades
+    const ageCtx = document.getElementById('ageChart').getContext('2d');
+    new Chart(ageCtx, {
+        type: 'bar',
+        data: {
+            labels: ['0-5', '6-10', '11-15', '21-25', '26-30', '31-35', '36-40', '41-45', '46-50', '51-55', '56-60', '61-65', '66-70', '71-75', '76-80', '86-90'],
+            datasets: [{
+                label: 'Pacientes',
+                data: [8, 6, 6, 6, 5, 4, 4, 6, 5, 5, 8, 3, 3, 5, 3, 4],
+                backgroundColor: '#36A2EB'
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico de Enfermedades
+    const diseasesCtx = document.getElementById('diseasesChart').getContext('2d');
+    new Chart(diseasesCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Hipertensión', 'Resfriado común', 'Anemia', 'Vaginosis', 'Otitis media', 'Lumbago', 'Infección del tracto urinario', 'Diabetes mellitus tipo II', 'Tos productiva', 'Enfermedad renal'],
+            datasets: [{
+                label: 'Casos',
+                data: [6, 5, 4, 4, 4, 4, 3, 3, 2, 2],
+                backgroundColor: '#4BC0C0'
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico de Sistemas
+    const systemsCtx = document.getElementById('systemsChart').getContext('2d');
+    new Chart(systemsCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Respiratorio', 'Músculo esquelético', 'Genitourinario', 'Neurológico', 'Cardiovascular', 'Gastrointestinal', 'Endocrino', 'Sanguíneo', 'Otológico', 'Boca', 'Nefrológico', 'Piel y faneras', 'Otros', 'Mamas'],
+            datasets: [{
+                label: 'Casos',
+                data: [15, 11, 9, 7, 6, 6, 5, 5, 4, 3, 3, 3, 3, 1],
+                backgroundColor: '#FF9F40'
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+<style>
+    @media print {
+        .btn-group {
+            display: none !important;
+        }
+        .card {
+            break-inside: avoid;
+        }
+    }
+</style>
+{% endblock %}

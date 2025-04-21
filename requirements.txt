@@ -1,0 +1,12 @@
+Flask==2.3.3
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.2
+Flask-WTF==1.2.1
+WTForms==3.0.1
+MySQL-connector-python==8.1.0
+PyMySQL==1.1.0
+passlib==1.7.4
+email-validator==2.0.0
+Flask-Migrate==4.0.5
+Werkzeug==2.3.7
+Python-dotenv==1.0.0
