@@ -1,0 +1,101 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Gestionar Roles{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+	<div class="card">
+		<div class="card-header bg-white d-flex justify-content-between align-items-center">
+			<h5 class="mb-0">Gestionar Roles</h5>
+		</div>
+		<div class="card-body">
+			<div class="table-responsive">
+				<table class="table table-striped align-middle">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Nombre</th>
+							<th>Usuario</th>
+							<th>Email</th>
+							<th>Rol actual</th>
+							<th style="width: 240px;">Cambiar rol</th>
+							<th>Acciones</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for u in usuarios %}
+						<tr>
+							<td>{{ u.id }}</td>
+							<td>{{ u.nombre_completo }}</td>
+							<td>{{ u.usuario }}</td>
+							<td>{{ u.email or '—' }}</td>
+							<td><span class="badge bg-info text-dark">{{ u.rol }}</span></td>
+							<td>
+								<div class="input-group input-group-sm">
+									<select class="form-select" id="rol-{{ u.id }}">
+										<option value="pendiente" {% if u.rol=='pendiente' %}selected{% endif %}>pendiente</option>
+										<option value="medico" {% if u.rol=='medico' %}selected{% endif %}>medico</option>
+										<option value="medico_supervisor" {% if u.rol=='medico_supervisor' %}selected{% endif %}>medico_supervisor</option>
+										<option value="admin" {% if u.rol=='admin' %}selected{% endif %}>admin</option>
+									</select>
+									<button class="btn btn-primary" onclick="guardarRol({{ u.id }})">Guardar</button>
+								</div>
+							</td>
+							<td>
+								<button class="btn btn-danger btn-sm" onclick="eliminarUsuario({{ u.id }})">Eliminar</button>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+async function guardarRol(userId) {
+	const select = document.getElementById(`rol-${userId}`);
+	const rol = select.value;
+	const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+	try {
+		const resp = await fetch('{{ url_for('auth.change_role_post') }}', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrf },
+			credentials: 'same-origin',
+			body: new URLSearchParams({ user_id: userId, rol })
+		});
+		const ct = resp.headers.get('content-type') || '';
+		const data = ct.includes('application/json') ? await resp.json() : { success: false, error: await resp.text() };
+		if (!data.success) throw new Error(data.error || 'Error al cambiar rol');
+		alert('Rol actualizado');
+		location.reload();
+	} catch (e) {
+		alert(e.message);
+	}
+}
+
+async function eliminarUsuario(userId) {
+	if (!confirm('¿Estás seguro de que quieres eliminar a este usuario de forma permanente? Esta acción no se puede deshacer.')) {
+		return;
+	}
+	const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+	try {
+		const resp = await fetch('{{ url_for('auth.delete_user') }}', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+			credentials: 'same-origin',
+			body: JSON.stringify({ user_id: userId })
+		});
+		const data = await resp.json();
+		if (!data.success) throw new Error(data.error || 'Error al eliminar el usuario');
+		alert('Usuario eliminado correctamente');
+		location.reload();
+	} catch (e) {
+		alert(e.message);
+	}
+}
+</script>
+{% endblock %}
+
+

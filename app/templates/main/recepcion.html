@@ -4,41 +4,111 @@
 
 {% block scripts %}
 <script>
-function asignarClinica(clinicaId) {
-    // Confirmar la asignación
-    if (confirm('¿Desea asignar esta clínica al paciente?')) {
-        // Obtener el formulario
-        const form = document.querySelector('form');
-        
-        // Crear un campo oculto para la clínica seleccionada
-        const clinicaInput = document.createElement('input');
-        clinicaInput.type = 'hidden';
-        clinicaInput.name = 'clinica_id';
-        clinicaInput.value = clinicaId;
-        
-        // Añadir el campo al formulario
-        form.appendChild(clinicaInput);
-        
-        // Enviar el formulario
-        form.submit();
-    }
-}
-
-// Habilitar/deshabilitar botones de asignación según selección de tipo de consulta
 document.addEventListener('DOMContentLoaded', function() {
-    const tipoConsultaRadios = document.querySelectorAll('input[name="tipo_consulta"]');
-    const asignarBotones = document.querySelectorAll('.btn-success');
+    const searchInput = document.getElementById('buscar_paciente');
+    const searchResults = document.createElement('div');
+    const formNuevoPaciente = document.getElementById('formNuevoPaciente');
+    const formPacienteExistente = document.getElementById('formPacienteExistente');
     
-    tipoConsultaRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            // Si algún tipo de consulta está seleccionado, habilitar botones
-            const tipoSeleccionado = document.querySelector('input[name="tipo_consulta"]:checked');
-            
-            asignarBotones.forEach(boton => {
-                boton.disabled = !tipoSeleccionado;
-            });
-        });
+    // Configurar el div de resultados de búsqueda
+    searchResults.className = 'autocomplete-results';
+    searchResults.style.display = 'none';
+    searchResults.style.position = 'absolute';
+    searchResults.style.zIndex = '1000';
+    searchResults.style.backgroundColor = '#fff';
+    searchResults.style.border = '1px solid #ddd';
+    searchResults.style.borderRadius = '4px';
+    searchResults.style.width = '100%';
+    searchResults.style.maxHeight = '200px';
+    searchResults.style.overflowY = 'auto';
+    searchInput.parentNode.style.position = 'relative';
+    searchInput.parentNode.appendChild(searchResults);
+
+    // Función para mostrar/ocultar formularios
+    function toggleForms(showExistente = false) {
+        if (showExistente) {
+            formPacienteExistente.style.display = 'block';
+            formNuevoPaciente.style.display = 'none';
+        } else {
+            formPacienteExistente.style.display = 'none';
+            formNuevoPaciente.style.display = 'block';
+        }
+    }
+
+    // Botón para mostrar formulario de nuevo paciente
+    document.getElementById('btnNuevoPaciente').addEventListener('click', function() {
+        toggleForms(false);
     });
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        fetch(`/api/pacientes/buscar?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                searchResults.innerHTML = '';
+                if (data.length > 0) {
+                    data.forEach(paciente => {
+                        const item = document.createElement('div');
+                        item.className = 'autocomplete-item';
+                        item.style.padding = '8px 12px';
+                        item.style.cursor = 'pointer';
+                        item.style.borderBottom = '1px solid #eee';
+                        item.innerHTML = `<strong>${paciente.nombre_completo}</strong> (ID: ${paciente.id})<br>
+                                        <small>Edad: ${paciente.edad} años - ${paciente.sexo}<br>
+                                        Dirección: ${paciente.direccion}<br>
+                                        Teléfono: ${paciente.telefono}</small>`;
+                        
+                        item.addEventListener('click', function() {
+                            // Rellenar los campos del paciente existente
+                            document.getElementById('paciente_id').value = paciente.id;
+                            document.getElementById('nombre_paciente').textContent = paciente.nombre_completo;
+                            document.getElementById('edad_paciente').textContent = paciente.edad + ' años';
+                            document.getElementById('sexo_paciente').textContent = paciente.sexo;
+                            document.getElementById('direccion_paciente').textContent = paciente.direccion;
+                            document.getElementById('telefono_paciente').textContent = paciente.telefono;
+                            const dpiLabel = document.getElementById('dpi_paciente');
+                            if (dpiLabel) dpiLabel.textContent = paciente.dni || 'No registrado';
+                            
+                            // Mostrar el formulario para paciente existente
+                            toggleForms(true);
+                            searchResults.style.display = 'none';
+                            searchInput.value = paciente.nombre_completo;
+                            
+                            // Mostrar sección de paciente existente
+                        });
+                        
+                        item.addEventListener('mouseover', function() {
+                            this.style.backgroundColor = '#f0f0f0';
+                        });
+                        item.addEventListener('mouseout', function() {
+                            this.style.backgroundColor = '#fff';
+                        });
+                        searchResults.appendChild(item);
+                    });
+                    searchResults.style.display = 'block';
+                } else {
+                    searchResults.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error en la búsqueda:', error);
+                searchResults.style.display = 'none';
+            });
+    });
+
+    // Ocultar resultados cuando se hace clic fuera
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.style.display = 'none';
+        }
+    });
+
+    // Se removió la lógica de disponibilidad de clínicas y asignación
 });
 </script>
 {% endblock %}
@@ -47,139 +117,226 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="container-fluid">
     <h1 class="mb-4">Recepción de Pacientes</h1>
     
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">Registro de Paciente</h5>
+    <!-- Buscador de Pacientes -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Buscar Paciente</h5>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-md-8">
+                    <label for="buscar_paciente" class="form-label">Nombre o ID del paciente</label>
+                    <input type="text" class="form-control" id="buscar_paciente" placeholder="Ingrese el nombre o ID del paciente">
                 </div>
-                <div class="card-body">
-                    <form method="post" action="">
-                        <div class="mb-3">
-                            <label for="nombre_completo" class="form-label">Nombre Completo</label>
-                            <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" required>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="edad" class="form-label">Edad</label>
-                                <input type="number" class="form-control" id="edad" name="edad" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="sexo" class="form-label">Sexo</label>
-                                <select class="form-select" id="sexo" name="sexo" required>
-                                    <option value="">Seleccionar</option>
-                                    <option value="Masculino">Masculino</option>
-                                    <option value="Femenino">Femenino</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="direccion" class="form-label">Dirección</label>
-                            <input type="text" class="form-control" id="direccion" name="direccion">
-                        </div>
-                        <div class="mb-3">
-                            <label for="telefono" class="form-label">Teléfono</label>
-                            <input type="text" class="form-control" id="telefono" name="telefono">
-                        </div>
-                        <!-- Expediente -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Expediente</label>
-                            <div class="d-flex">
-                                <div class="form-check me-4">
-                                    <input class="form-check-input" type="radio" name="expediente" id="expediente_si" value="Si">
-                                    <label class="form-check-label" for="expediente_si">Sí</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="expediente" id="expediente_no" value="No">
-                                    <label class="form-check-label" for="expediente_no">No</label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Tipo de Consulta -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Tipo de Consulta</label>
-                            <div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="tipo_consulta" id="primera_consulta" value="Primera consulta">
-                                    <label class="form-check-label" for="primera_consulta">Primera consulta</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="tipo_consulta" id="seguimiento" value="Seguimiento">
-                                    <label class="form-check-label" for="seguimiento">Seguimiento</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="tipo_consulta" id="medicamento" value="Medicamento">
-                                    <label class="form-check-label" for="medicamento">Medicamento</label>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Signos Vitales -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">SIGNOS VITALES</label>
-                            <div class="row mb-2">
-                                <div class="col-md-6">
-                                    <label for="presion_arterial" class="form-label">Presión Arterial</label>
-                                    <input type="text" class="form-control" id="presion_arterial" name="presion_arterial" placeholder="120/80">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="saturacion" class="form-label">Saturación</label>
-                                    <input type="number" class="form-control" id="saturacion" name="saturacion" placeholder="95">
-                                </div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-md-6">
-                                    <label for="frec_respiratoria" class="form-label">Frec. Respiratoria</label>
-                                    <input type="number" class="form-control" id="frec_respiratoria" name="frec_respiratoria">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="temperatura" class="form-label">Temperatura</label>
-                                    <input type="number" step="0.1" class="form-control" id="temperatura" name="temperatura">
-                                </div>
-                            </div>
-                            <div class="row mb-2">
-                                <div class="col-md-6">
-                                    <label for="frec_cardiaca" class="form-label">Frec. Cardíaca</label>
-                                    <input type="number" class="form-control" id="frec_cardiaca" name="frec_cardiaca">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="glucosa" class="form-label">Glucosa</label>
-                                    <input type="number" class="form-control" id="glucosa" name="glucosa">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <hr class="my-4">
-                        
-                        <!-- Disponibilidad de Clínicas -->
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Disponibilidad de Clínicas</label>
-                            <div class="row">
-                                {% for clinica in clinicas %}
-                                <div class="col-md-6 mb-2">
-                                    <div class="card">
-                                        <div class="card-header text-center bg-primary text-white p-1">
-                                            <h6 class="mb-0 small">{{ clinica.nombre }}</h6>
-                                        </div>
-                                        <div class="card-body text-center p-2">
-                                            <p class="small mb-1 text-danger">No Disponible</p>
-                                            <button class="btn btn-secondary btn-sm" disabled>ASIGNAR</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Registrar Paciente</button>
-                        </div>
-                    </form>
+                <div class="col-md-4">
+                    <button id="btnNuevoPaciente" class="btn btn-success">
+                        <i class="fas fa-user-plus"></i> Registrar Nuevo Paciente
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
 
+    <!-- Formulario para Paciente Existente -->
+    <div id="formPacienteExistente" style="display: none;">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Datos del Paciente</h5>
+            </div>
+            <div class="card-body">
+                <form id="formExistente" method="post" action="{{ url_for('main.registrar_consulta') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="paciente_id" name="paciente_id">
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <h6 class="mb-2">Nombre:</h6>
+                            <p id="nombre_paciente" class="fw-bold"></p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="mb-2">Edad:</h6>
+                            <p id="edad_paciente"></p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="mb-2">Sexo:</h6>
+                            <p id="sexo_paciente"></p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="mb-2">Teléfono:</h6>
+                            <p id="telefono_paciente"></p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="mb-2">DPI:</h6>
+                            <p id="dpi_paciente"></p>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="mb-2">Dirección:</h6>
+                            <p id="direccion_paciente"></p>
+                        </div>
+                    </div>
 
+                    <!-- Tipo de Consulta -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Tipo de Consulta <span class="text-danger">*</span></label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_consulta" id="primera_consulta_existente" value="Primera consulta" required>
+                                <label class="form-check-label" for="primera_consulta_existente">Primera consulta</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_consulta" id="seguimiento_existente" value="Seguimiento" required>
+                                <label class="form-check-label" for="seguimiento_existente">Seguimiento</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_consulta" id="medicamento_existente" value="Medicamento" required>
+                                <label class="form-check-label" for="medicamento_existente">Medicamento</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Signos Vitales -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">SIGNOS VITALES</label>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="presion_arterial" class="form-label">Presión Arterial</label>
+                                <input type="text" class="form-control" name="presion_arterial" placeholder="120/80">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="saturacion" class="form-label">Saturación</label>
+                                <input type="number" class="form-control" name="saturacion" placeholder="95">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="temperatura" class="form-label">Temperatura</label>
+                                <input type="number" step="0.1" class="form-control" name="temperatura">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="frec_respiratoria" class="form-label">Frec. Respiratoria</label>
+                                <input type="number" class="form-control" name="frec_respiratoria">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="frec_cardiaca" class="form-label">Frec. Cardíaca</label>
+                                <input type="number" class="form-control" name="frec_cardiaca">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="glucosa" class="form-label">Glucosa</label>
+                                <input type="number" class="form-control" name="glucosa">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acción simplificada -->
+                    <div class="mb-4 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            Registrar Consulta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario para Nuevo Paciente -->
+    <div id="formNuevoPaciente" style="display: none;">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Registro de Nuevo Paciente</h5>
+            </div>
+            <div class="card-body">
+                <form id="formNuevo" method="post" action="{{ url_for('main.registrar_paciente') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="nombre_completo" class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dni" class="form-label">DPI (Documento Personal de Identificación)</label>
+                        <input type="text" class="form-control" id="dni" name="dni" placeholder="0000 00000 0000" maxlength="25">
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edad" class="form-label">Edad</label>
+                            <input type="number" class="form-control" id="edad" name="edad" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="sexo" class="form-label">Sexo</label>
+                            <select class="form-select" id="sexo" name="sexo" required>
+                                <option value="">Seleccionar</option>
+                                <option value="Masculino">Masculino</option>
+                                <option value="Femenino">Femenino</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="direccion" class="form-label">Dirección</label>
+                        <input type="text" class="form-control" id="direccion" name="direccion">
+                    </div>
+                    <div class="mb-3">
+                        <label for="telefono" class="form-label">Teléfono</label>
+                        <input type="text" class="form-control" id="telefono" name="telefono">
+                    </div>
+                    
+                    <!-- Tipo de Consulta -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tipo de Consulta <span class="text-danger">*</span></label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_consulta" id="primera_consulta" value="Primera consulta" required>
+                                <label class="form-check-label" for="primera_consulta">Primera consulta</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_consulta" id="seguimiento" value="Seguimiento" required>
+                                <label class="form-check-label" for="seguimiento">Seguimiento</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tipo_consulta" id="medicamento" value="Medicamento" required>
+                                <label class="form-check-label" for="medicamento">Medicamento</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Signos Vitales -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">SIGNOS VITALES</label>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="presion_arterial" class="form-label">Presión Arterial</label>
+                                <input type="text" class="form-control" name="presion_arterial" placeholder="120/80">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="saturacion" class="form-label">Saturación</label>
+                                <input type="number" class="form-control" name="saturacion" placeholder="95">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="temperatura" class="form-label">Temperatura</label>
+                                <input type="number" step="0.1" class="form-control" name="temperatura">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="frec_respiratoria" class="form-label">Frec. Respiratoria</label>
+                                <input type="number" class="form-control" name="frec_respiratoria">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="frec_cardiaca" class="form-label">Frec. Cardíaca</label>
+                                <input type="number" class="form-control" name="frec_cardiaca">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="glucosa" class="form-label">Glucosa</label>
+                                <input type="number" class="form-control" name="glucosa">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acción simplificada -->
+                    <div class="mb-3 text-end">
+                        <button type="submit" class="btn btn-success">
+                            Registrar Paciente
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

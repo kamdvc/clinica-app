@@ -1,164 +1,230 @@
-{% extends 'main/base.html' %}
+{% extends "main/base.html" %}
 
-{% block title %}Reportes{% endblock %}
+{% block title %}Reportes Médicos{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 2rem;
+    }
+    
+    .chart-small {
+        height: 300px;
+    }
+    
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .stats-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid #007bff;
+    }
+    
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #007bff;
+        margin: 0;
+    }
+    
+    .stats-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    
+    .chart-section {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .chart-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 1rem;
+        text-align: center;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 0.5rem;
+    }
+    
+    .loading-spinner {
+        text-align: center;
+        padding: 2rem;
+    }
+    
+    .btn-export {
+        background: linear-gradient(45deg, #28a745, #20c997);
+        border: none;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 25px;
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
+        color: white;
+    }
+    
+    .clinic-header {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .clinic-logo {
+        color: #d4af37;
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <h1 class="mb-4">Reportes</h1>
-    
-    <!-- Estadísticas de Pacientes por Semana -->
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Pacientes Atendidos por Semana Febrero 2024</h5>
+    <!-- Header del Reporte -->
+    <div class="report-header">
+        <div class="clinic-header">
+            <div class="clinic-logo">
+                <i class="fas fa-hospital"></i> CLÍNICA FAMILIAR
+            </div>
+            <h5>-SHORORAGUA-</h5>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Semana</th>
-                            <th>Cantidad</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Semana 1 (3-7 de febrero)</td>
-                            <td>11</td>
-                        </tr>
-                        <tr>
-                            <td>Semana 2 (10-14 de febrero)</td>
-                            <td>17</td>
-                        </tr>
-                        <tr>
-                            <td>Semana 3 (17-21 de febrero)</td>
-                            <td>27</td>
-                        </tr>
-                        <tr>
-                            <td>Semana 4 (24-28 de febrero)</td>
-                            <td>26</td>
-                        </tr>
-                        <tr class="table-info">
-                            <td><strong>Total</strong></td>
-                            <td><strong>81</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
+        <h1 class="mb-1">REPORTES MÉDICOS ESTADÍSTICOS</h1>
+        {% if clinic_name %}
+        <p class="mb-0"><strong>Clínica:</strong> {{ clinic_name }}</p>
+        {% endif %}
+        <p class="mb-0">Sistema de Análisis y Estadísticas Clínicas</p>
+        <div class="mt-3">
+            <button class="btn btn-export" onclick="window.location.href='{{ url_for('main.exportar_reportes_pdf') }}'">
+                <i class="fas fa-file-pdf me-2"></i>Exportar Reportes PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="row" id="estadisticas-cards">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="stats-number" id="total-pacientes">-</h3>
+                <p class="stats-label">Total Pacientes</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="stats-number" id="total-consultas">-</h3>
+                <p class="stats-label">Total Consultas</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="stats-number" id="promedio-edad">-</h3>
+                <p class="stats-label">Edad Promedio</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <h3 class="stats-number" id="consultas-mes">-</h3>
+                <p class="stats-label">Consultas Este Mes</p>
             </div>
         </div>
     </div>
 
-    <!-- Distribución por Género y Edad -->
-    <div class="row mb-4">
+    <!-- Gráficos de Distribución -->
+    <div class="row">
+        <!-- Distribución por Género -->
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Distribución por Género</h5>
+            <div class="chart-section">
+                <h3 class="chart-title">Pacientes por Género</h3>
+                <div class="chart-container chart-small">
+                    <canvas id="generoChart"></canvas>
                 </div>
-                <div class="card-body">
-                    <div class="text-center">
-                        <p>Masculino: 29 pacientes (36%)</p>
-                        <p>Femenino: 52 pacientes (64%)</p>
+            </div>
+        </div>
+
+        <!-- Consultas por Mes -->
+        <div class="col-md-6">
+            <div class="chart-section">
+                <h3 class="chart-title">Consultas por Mes (Últimos 6 meses)</h3>
+                <div class="chart-container chart-small">
+                    <canvas id="consultasMesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribución por Edad -->
+    <div class="chart-section">
+        <h3 class="chart-title">Rango de Edades de Pacientes</h3>
+        <div class="chart-container">
+            <canvas id="edadChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Enfermedades Más Comunes -->
+    <div class="chart-section">
+        <h3 class="chart-title">Enfermedades Más Frecuentes</h3>
+        <div class="chart-container">
+            <canvas id="enfermedadesChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Problemas por Sistemas -->
+    <div class="chart-section">
+        <h3 class="chart-title">Problemas por Sistemas Médicos</h3>
+        <div class="chart-container">
+            <canvas id="sistemasChart"></canvas>
+        </div>
+        <div class="text-center mt-3">
+            <p class="text-muted">Haga clic en las barras para ver detalles por sistema</p>
+        </div>
+    </div>
+
+    <!-- Modal para Detalles de Sistema -->
+    <div class="modal fade" id="sistemaDetalleModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sistemaModalTitle">Detalle del Sistema</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="chart-container">
+                        <canvas id="sistemaDetalleChart"></canvas>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">Rango de Edades</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <tbody>
-                                <tr><td>0-5 años</td><td>8 pacientes</td></tr>
-                                <tr><td>6-10 años</td><td>6 pacientes</td></tr>
-                                <tr><td>11-15 años</td><td>6 pacientes</td></tr>
-                                <tr><td>21-25 años</td><td>6 pacientes</td></tr>
-                                <tr><td>56-60 años</td><td>8 pacientes</td></tr>
-                                <!-- Otros rangos de edad pueden ser expandidos al hacer clic -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <!-- Enfermedades Atendidas -->
-    <div class="card mb-4">
-        <div class="card-header bg-warning">
-            <h5 class="mb-0">Enfermedades Atendidas</h5>
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Enfermedad</th>
-                            <th>Cantidad</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Hipertensión</td><td>6</td></tr>
-                        <tr><td>Resfriado común</td><td>5</td></tr>
-                        <tr><td>Anemia</td><td>4</td></tr>
-                        <tr><td>Vaginosis</td><td>4</td></tr>
-                        <tr><td>Otitis media</td><td>4</td></tr>
-                        <tr><td>Lumbago</td><td>4</td></tr>
-                        <!-- Otras enfermedades pueden ser expandidas -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Problemas Respiratorios -->
-    <div class="card mb-4">
-        <div class="card-header bg-danger text-white">
-            <h5 class="mb-0">Problemas Respiratorios</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Condición</th>
-                            <th>Cantidad</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Resfriado Común</td><td>5</td></tr>
-                        <tr><td>Tos Productiva</td><td>2</td></tr>
-                        <tr><td>Neumonía Atípica</td><td>2</td></tr>
-                        <tr><td>EPOC</td><td>1</td></tr>
-                        <tr><td>Bronquitis</td><td>1</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Botones de Acción -->
-    <div class="d-flex justify-content-end mb-4">
-        <button class="btn btn-primary me-2" onclick="window.print()"><i class="fas fa-print"></i> Imprimir Reporte</button>
-        <button class="btn btn-success" onclick="exportToPDF()"><i class="fas fa-file-pdf"></i> Exportar a PDF</button>
+        <p class="mt-2">Generando reportes estadísticos...</p>
     </div>
 </div>
+{% endblock %}
 
-<!-- Script para exportar a PDF -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script>
-function exportToPDF() {
-    const element = document.querySelector('.container-fluid');
-    const opt = {
-        margin: 1,
-        filename: 'reporte_clinico.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-    html2pdf().set(opt).from(element).save();
-}
-</script>
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/reportes.js') }}"></script>
 {% endblock %}

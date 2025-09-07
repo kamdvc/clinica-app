@@ -6,7 +6,18 @@
 <div class="container-fluid p-4">
     <div class="card">
         <div class="card-body">
-            <h1 class="card-title mb-4">Consultas Médicas</h1>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="card-title mb-0">Consultas Médicas</h1>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="patient-search" placeholder="Buscar paciente por nombre o DPI..." autocomplete="off">
+                        <button class="btn btn-outline-primary" type="button" id="search-btn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <div id="search-results" class="dropdown-menu position-absolute w-100" style="max-height: 300px; overflow-y: auto; z-index: 1050;"></div>
+                </div>
+            </div>
         <div class="row">
                 <!-- Vital Signs Panel -->
                 <div class="col-md-3">
@@ -25,38 +36,59 @@
                                 <div class="col-6">
                                     <div class="border rounded p-2">
                                         <small class="d-block text-muted">Presión arterial</small>
-                                        <strong>{{ consulta.signos_vitales.presion_arterial if consulta and consulta.signos_vitales else '--' }}</strong>
+                                        <strong id="vital-presion-arterial">{{ consulta.signos_vitales.presion_arterial if consulta and consulta.signos_vitales else '--' }}</strong>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="border rounded p-2">
                                         <small class="d-block text-muted">Saturación</small>
-                                        <strong>{{ consulta.signos_vitales.saturacion if consulta and consulta.signos_vitales else '--' }}%</strong>
+                                        <strong id="vital-saturacion">{{ consulta.signos_vitales.saturacion if consulta and consulta.signos_vitales else '--' }}%</strong>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="border rounded p-2">
                                         <small class="d-block text-muted">Temperatura</small>
-                                        <strong>{{ consulta.signos_vitales.temperatura if consulta and consulta.signos_vitales else '--' }}</strong>
+                                        <strong id="vital-temperatura">{{ consulta.signos_vitales.temperatura if consulta and consulta.signos_vitales else '--' }}</strong>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="border rounded p-2">
                                         <small class="d-block text-muted">Frecuencia resp.</small>
-                                        <strong>{{ consulta.signos_vitales.frecuencia_respiratoria if consulta and consulta.signos_vitales else '--' }} rpm</strong>
+                                        <strong id="vital-frecuencia-respiratoria">{{ consulta.signos_vitales.frecuencia_respiratoria if consulta and consulta.signos_vitales else '--' }} rpm</strong>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="border rounded p-2">
                                         <small class="d-block text-muted">Frec. cardíaca</small>
-                                        <strong>{{ consulta.signos_vitales.frecuencia_cardiaca if consulta and consulta.signos_vitales else '--' }} rpm</strong>
+                                        <strong id="vital-frecuencia-cardiaca">{{ consulta.signos_vitales.frecuencia_cardiaca if consulta and consulta.signos_vitales else '--' }} rpm</strong>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="border rounded p-2">
                                         <small class="d-block text-muted">Glucosa</small>
-                                        <strong>{{ consulta.signos_vitales.glucosa if consulta and consulta.signos_vitales else '--' }} mg/dl</strong>
+                                        <strong id="vital-glucosa">{{ consulta.signos_vitales.glucosa if consulta and consulta.signos_vitales else '--' }} mg/dl</strong>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Historial Médico Panel -->
+                    <div class="card mt-3">
+                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">HISTORIAL MÉDICO</h6>
+                                <small id="historial-total" class="text-light">No hay consultas previas</small>
+                            </div>
+                            <button id="btn-descargar-pdf" class="btn btn-light btn-sm" style="display: none;" onclick="descargarHistorialPDF()">
+                                <i class="fas fa-download me-1"></i>PDF
+                            </button>
+                        </div>
+                        <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                            <div id="historial-container">
+                                <div class="text-center p-3 text-muted">
+                                    <i class="fas fa-clipboard-list fa-2x mb-2"></i>
+                                    <p>Seleccione un paciente para ver su historial médico</p>
                                 </div>
                             </div>
                         </div>
@@ -67,62 +99,91 @@
                 <div class="col-md-9">
                     <div class="card">
                         <div class="card-header bg-white">
-                            <ul class="nav nav-tabs card-header-tabs">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="datos-generales-tab" data-bs-toggle="tab" data-bs-target="#datos-generales" type="button" role="tab" aria-controls="datos-generales" aria-selected="true">Datos Generales</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="motivo-consulta-tab" data-bs-toggle="tab" data-bs-target="#motivo-consulta" type="button" role="tab" aria-controls="motivo-consulta" aria-selected="false">Motivo Consulta</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="diagnostico-tab" data-bs-toggle="tab" data-bs-target="#diagnostico" type="button" role="tab" aria-controls="diagnostico" aria-selected="false">Diagnóstico</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="receta-tab" data-bs-toggle="tab" data-bs-target="#receta" type="button" role="tab" aria-controls="receta" aria-selected="false">Receta</button>
-                                </li>
-                            </ul>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <ul class="nav nav-tabs card-header-tabs mb-0">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="datos-generales-tab" data-bs-toggle="tab" data-bs-target="#datos-generales" type="button" role="tab" aria-controls="datos-generales" aria-selected="true">Datos Generales</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="motivo-consulta-tab" data-bs-toggle="tab" data-bs-target="#motivo-consulta" type="button" role="tab" aria-controls="motivo-consulta" aria-selected="false">Motivo Consulta</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="diagnostico-tab" data-bs-toggle="tab" data-bs-target="#diagnostico" type="button" role="tab" aria-controls="diagnostico" aria-selected="false">Diagnóstico</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="receta-tab" data-bs-toggle="tab" data-bs-target="#receta" type="button" role="tab" aria-controls="receta" aria-selected="false">Receta</button>
+                                    </li>
+                                </ul>
+                                <div class="d-flex align-items-center">
+                                    <small id="autosave-indicator" class="text-muted me-2" style="display: none;">
+                                        <i class="fas fa-save me-1"></i>Autoguardado activado
+                                    </small>
+                                    <button id="btn-debug-autosave" class="btn btn-outline-info btn-sm me-2" style="display: none;" onclick="debugAutoSave()">
+                                        <i class="fas fa-bug me-1"></i>Debug
+                                    </button>
+                                    <button id="btn-limpiar-formulario" class="btn btn-outline-secondary btn-sm" style="display: none;" onclick="limpiarFormulario()">
+                                        <i class="fas fa-eraser me-1"></i>Limpiar
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <form method="post">
+                            <form method="post" id="consulta-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <div class="tab-content">
                                     <!-- Datos Generales -->
                                     <div class="tab-pane fade show active" id="datos-generales">
                                         <div class="row mb-3">
                                             <div class="col-md-3">
                                                 <label class="form-label">Estado civil</label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="estado_civil" value="{{ paciente_seleccionado.estado_civil if paciente_seleccionado else '' }}">
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label">Religión</label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="religion" value="{{ paciente_seleccionado.religion if paciente_seleccionado else '' }}">
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label">Escolaridad</label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="escolaridad" value="{{ paciente_seleccionado.escolaridad if paciente_seleccionado else '' }}">
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label">Ocupación</label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="ocupacion" value="{{ paciente_seleccionado.ocupacion if paciente_seleccionado else '' }}">
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">DPI</label>
+                                                <input type="text" class="form-control" name="dni" value="{{ paciente_seleccionado.dni if paciente_seleccionado else '' }}" placeholder="0000 00000 0000">
                                             </div>
                                         </div>
                                         <div class="row mb-3">
                                             <div class="col-md-6">
                                                 <label class="form-label">Dirección</label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="direccion" value="{{ paciente_seleccionado.direccion if paciente_seleccionado else '' }}">
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label">Procedencia</label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="procedencia" value="{{ paciente_seleccionado.procedencia if paciente_seleccionado else '' }}">
                                             </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <label class="form-label">Teléfono</label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="telefono" value="{{ paciente_seleccionado.telefono if paciente_seleccionado else '' }}">
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label">Número de expediente</label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="numero_expediente" value="{{ paciente_seleccionado.numero_expediente if paciente_seleccionado else '' }}">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Botón para guardar datos generales -->
+                                        <div class="row mt-3">
+                                            <div class="col-12 text-end">
+                                                <button type="button" class="btn btn-success btn-sm" onclick="guardarDatosGenerales()" id="btn-guardar-datos-generales">
+                                                    <i class="fas fa-save me-1"></i>Guardar Datos Generales
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -131,70 +192,71 @@
                                     <div class="tab-pane fade" id="motivo-consulta">
                                         <div class="mb-3">
                                             <label class="form-label">Motivo de Consulta</label>
-                                            <textarea class="form-control" rows="2"></textarea>
+                                            <textarea class="form-control" rows="2" name="motivo_consulta">{{ consulta_actual.motivo_consulta if consulta_actual else '' }}</textarea>
                                         </div>
                                         
                                         <div class="mb-3">
                                             <label class="form-label">Historia de la Enfermedad</label>
-                                            <textarea class="form-control" rows="2"></textarea>
+                                            <textarea class="form-control" rows="2" name="historia_enfermedad">{{ consulta_actual.historia_enfermedad if consulta_actual else '' }}</textarea>
                                         </div>
 
                                         <div class="mb-3">
                                             <label class="form-label">REVISIÓN POR SISTEMAS</label>
                                             <div class="border p-2">
-                                                <div class="d-flex flex-wrap gap-2">
-                                                    <span class="badge bg-dark">Cabeza</span>
-                                                    <span class="badge bg-secondary">Ojos</span>
-                                                    <span class="badge bg-secondary">Oídos</span>
-                                                    <span class="badge bg-secondary">Nariz</span>
-                                                    <span class="badge bg-secondary">Boca</span>
-                                                    <span class="badge bg-secondary">Cuello</span>
-                                                    <span class="badge bg-secondary">Mamas</span>
-                                                    <span class="badge bg-secondary">Respiratorio</span>
-                                                    <span class="badge bg-secondary">Cardíaco</span>
-                                                    <span class="badge bg-secondary">Gastrointestinal</span>
-                                                    <span class="badge bg-secondary">Genitourinario</span>
-                                                    <span class="badge bg-secondary">Musc.</span>
-                                                    <span class="badge bg-secondary">Neuro.</span>
-                                                    <span class="badge bg-secondary">Piel</span>
+                                                <div class="d-flex flex-wrap gap-2" id="sistemas-badges-container">
+                                                    <span class="badge bg-secondary system-badge" data-system="Cabeza" style="cursor: pointer;">Cabeza</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Ojos" style="cursor: pointer;">Ojos</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Oídos" style="cursor: pointer;">Oídos</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Nariz" style="cursor: pointer;">Nariz</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Boca" style="cursor: pointer;">Boca</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Cuello" style="cursor: pointer;">Cuello</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Mamas" style="cursor: pointer;">Mamas</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Respiratorio" style="cursor: pointer;">Respiratorio</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Cardíaco" style="cursor: pointer;">Cardíaco</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Gastrointestinal" style="cursor: pointer;">Gastrointestinal</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Genitourinario" style="cursor: pointer;">Genitourinario</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Musculoesquelético" style="cursor: pointer;">Musc.</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Neurológico" style="cursor: pointer;">Neuro.</span>
+                                                    <span class="badge bg-secondary system-badge" data-system="Piel" style="cursor: pointer;">Piel</span>
                                                 </div>
-                                                <textarea class="form-control mt-2" rows="3"></textarea>
+                                                <textarea class="form-control mt-2" rows="3" name="revision_sistemas_notas" placeholder="Notas adicionales sobre la revisión por sistemas..."></textarea>
                                             </div>
                                         </div>
 
-                                        <div class="mb-3">
+                                        <!-- Sección de Antecedentes - visible solo para pacientes femeninos -->
+                                        <div class="mb-3" id="antecedentes-section" style="display: none;">
                                             <label class="form-label">Antecedentes</label>
                                             <div class="border p-3">
                                                 <h5 class="mb-3"><span class="border-bottom border-3 border-primary">Gineco-Obstetricos</span> <span class="ms-2">Fisiológicos</span> <span class="ms-2">Patológicos</span> <span class="ms-2">Heredo Familiares</span> <span class="ms-2">Toxicológicos</span> <span class="ms-2">Fact. de riesgo</span></h5>
-                                                <div class="row g-3 mb-3">
+                                                <div class="row g-3 mb-3" id="antecedentes-gineco-section">
                                                     <div class="col-md-2">
                                                         <label class="form-label">Gestas</label>
-                                                        <input type="text" class="form-control">
+                                                        <input type="text" class="form-control" name="gestas" value="{{ consulta_actual.gestas if consulta_actual else '' }}">
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label class="form-label">Partos</label>
-                                                        <input type="text" class="form-control">
+                                                        <input type="text" class="form-control" name="partos" value="{{ consulta_actual.partos if consulta_actual else '' }}">
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label class="form-label">Abortos</label>
-                                                        <input type="text" class="form-control">
+                                                        <input type="text" class="form-control" name="abortos" value="{{ consulta_actual.abortos if consulta_actual else '' }}">
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label class="form-label">Hijos vivos</label>
-                                                        <input type="text" class="form-control">
+                                                        <input type="text" class="form-control" name="hijos_vivos" value="{{ consulta_actual.hijos_vivos if consulta_actual else '' }}">
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label class="form-label">Hijos muertos</label>
-                                                        <input type="text" class="form-control">
+                                                        <input type="text" class="form-control" name="hijos_muertos" value="{{ consulta_actual.hijos_muertos if consulta_actual else '' }}">
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label class="form-label">Fecha ultima regla</label>
-                                                        <input type="date" class="form-control">
+                                                        <input type="date" class="form-control" name="fecha_ultima_regla" value="{{ consulta_actual.fecha_ultima_regla.strftime('%Y-%m-%d') if consulta_actual and consulta_actual.fecha_ultima_regla else '' }}">
                                                     </div>
                                                 </div>
                                                 <div class="row">
                                                     <div class="col-12">
-                                                        <textarea class="form-control" rows="5" placeholder="Antecedentes..."></textarea>
+                                                        <textarea class="form-control" rows="5" placeholder="Antecedentes..." name="antecedentes">{{ consulta_actual.antecedentes if consulta_actual else '' }}</textarea>
                                                     </div>
                                                 </div>
                                             </div>
@@ -205,56 +267,67 @@
                                             <div class="row g-2">
                                                 <div class="col-md-1">
                                                     <label class="form-label small">P/A</label>
-                                                    <input type="text" class="form-control form-control-sm">
+                                                    <input type="text" class="form-control form-control-sm" name="presion_arterial_examen" value="{{ consulta_actual.presion_arterial if consulta_actual else '' }}">
                                                 </div>
                                                 <div class="col-md-1">
                                                     <label class="form-label small">FR</label>
-                                                    <input type="text" class="form-control form-control-sm">
+                                                    <input type="text" class="form-control form-control-sm" name="frecuencia_respiratoria_examen" value="{{ consulta_actual.frecuencia_respiratoria if consulta_actual else '' }}">
                                                 </div>
                                                 <div class="col-md-1">
                                                     <label class="form-label small">T</label>
-                                                    <input type="text" class="form-control form-control-sm">
+                                                    <input type="text" class="form-control form-control-sm" name="temperatura_examen" value="{{ consulta_actual.temperatura if consulta_actual else '' }}">
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label small">PESO</label>
-                                                    <input type="text" class="form-control form-control-sm">
+                                                    <input type="text" class="form-control" name="peso" value="{{ consulta_actual.peso if consulta_actual else '' }}">
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label small">TALLA</label>
-                                                    <input type="text" class="form-control form-control-sm">
+                                                    <input type="text" class="form-control form-control-sm" name="talla" value="{{ consulta_actual.talla if consulta_actual else '' }}">
                                                 </div>
                                                 <div class="col-md-1">
                                                     <label class="form-label small">FC</label>
-                                                    <input type="text" class="form-control form-control-sm">
+                                                    <input type="text" class="form-control form-control-sm" name="frecuencia_cardiaca_examen" value="{{ consulta_actual.frecuencia_cardiaca if consulta_actual else '' }}">
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label small">SPO</label>
-                                                    <input type="text" class="form-control form-control-sm">
+                                                    <input type="text" class="form-control form-control-sm" name="saturacion_oxigeno" value="{{ consulta_actual.saturacion_oxigeno if consulta_actual else '' }}">
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label small">IMC</label>
-                                                    <input type="text" class="form-control form-control-sm">
+                                                    <input type="text" class="form-control form-control-sm" name="imc" value="{{ consulta_actual.imc if consulta_actual else '' }}">
                                                 </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Botón para guardar motivo de consulta -->
+                                        <div class="row mt-3">
+                                            <div class="col-12 text-end">
+                                                <button type="button" class="btn btn-success btn-sm" onclick="guardarMotivoConsulta()" id="btn-guardar-motivo-consulta">
+                                                    <i class="fas fa-save me-1"></i>Guardar Motivo de Consulta
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                     
                                     <!-- Diagnóstico -->
                                     <div class="tab-pane fade" id="diagnostico" role="tabpanel" aria-labelledby="diagnostico-tab">
-                                        <div class="form-group">
-                                            <label for="descripcion">Descripción:</label>
-                                            <textarea class="form-control" id="descripcion" rows="4"></textarea>
+                                        <div class="form-group mb-3">
+                                            <label for="laboratorio" class="form-label">Exámenes de Laboratorio:</label>
+                                            <textarea class="form-control" id="laboratorio" name="laboratorio" rows="4">{{ consulta_actual.laboratorio if consulta_actual else '' }}</textarea>
                                         </div>
-                                        <div class="form-group mt-3">
-                                            <label for="laboratorio">Laboratorio:</label>
-                                            <textarea class="form-control" id="laboratorio" rows="4"></textarea>
-                                        </div>
-
-                                    </div>
-                                    <div class="tab-pane fade" id="diagnostico">
                                         <div class="mb-3">
                                             <label class="form-label">Diagnóstico</label>
-                                            <textarea class="form-control" rows="4"></textarea>
+                                            <textarea class="form-control" rows="4" name="diagnostico">{{ consulta_actual.diagnostico if consulta_actual else '' }}</textarea>
+                                        </div>
+                                        
+                                        <!-- Botón para guardar diagnóstico -->
+                                        <div class="row mt-3">
+                                            <div class="col-12 text-end">
+                                                <button type="button" class="btn btn-success btn-sm" onclick="guardarDiagnostico()" id="btn-guardar-diagnostico">
+                                                    <i class="fas fa-save me-1"></i>Guardar Diagnóstico
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     
@@ -262,26 +335,32 @@
                                     <div class="tab-pane fade" id="receta">
                                         <div class="container">
                                             <h2 class="text-center mb-4">RECETA MÉDICA</h2>
-                                            <p class="text-end">FECHA: 24/02/2025</p>
+                                            <p class="text-end">FECHA: <span id="receta-fecha"></span></p>
                                             <div class="mb-3">
-                                                <p><strong>Paciente:</strong> Luis Lopez</p>
-                                                <p><strong>Edad:</strong> 56 años</p>
-                                                <p><strong>Diagnóstico:</strong> Hipertensión arterial alta</p>
+                                                <p><strong>Paciente:</strong> <span id="receta-paciente-nombre">Seleccione un paciente</span></p>
+                                                <p><strong>Edad:</strong> <span id="receta-paciente-edad">-- años</span></p>
+                                                <div class="d-flex align-items-center">
+                                                    <strong class="me-2">Diagnóstico:</strong>
+                                                    <input type="text" class="form-control" name="diagnostico_receta" id="receta-diagnostico-input" placeholder="Escriba el diagnóstico aquí...">
+                                                </div>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label"><strong>Medicamento:</strong></label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="medicamento" id="medicamento-input">
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label"><strong>Dosificación:</strong></label>
-                                                <input type="text" class="form-control">
+                                                <input type="text" class="form-control" name="dosificacion" id="dosificacion-input">
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label"><strong>Indicaciones:</strong></label>
-                                                <textarea class="form-control" rows="3"></textarea>
+                                                <textarea class="form-control" rows="3" name="indicaciones" id="indicaciones-input"></textarea>
                                             </div>
                                             <div class="d-flex justify-content-between mt-4">
-                                                <button class="btn btn-primary px-4 d-block mx-auto" onclick="imprimirReceta()">IMPRIMIR</button>
+                                                <button type="button" class="btn btn-success btn-sm me-2" onclick="guardarReceta()" id="btn-guardar-receta">
+                                                    <i class="fas fa-save me-1"></i>Guardar Receta
+                                                </button>
+                                                <button type="button" class="btn btn-primary px-4" id="btn-imprimir-receta" onclick="imprimirReceta()">IMPRIMIR</button>
                                             </div>
                                         </div>
                                     </div>
@@ -292,38 +371,12 @@
                 </div>
             </div>
             
-            <div class="row mt-4">
-                <div class="col-12 d-flex justify-content-between">
-                    <button class="btn btn-danger">CANCELAR</button>
-                    <button class="btn btn-warning text-white">GUARDAR</button>
-                </div>
-            </div>
+            
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Tab navigation
-        const tabLinks = document.querySelectorAll('.nav-link');
-        tabLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const targetId = link.getAttribute('href');
-                
-                // Remove active class from all tabs and panes
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                document.querySelectorAll('.tab-pane').forEach(p => {
-                    p.classList.remove('show', 'active');
-                });
-                
-                // Add active class to clicked tab and its pane
-                link.classList.add('active');
-                document.querySelector(targetId).classList.add('show', 'active');
-            });
-        });
-    });
-</script>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/consultas.js') }}"></script>
 {% endblock %}

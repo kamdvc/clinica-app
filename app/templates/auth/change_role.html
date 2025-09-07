@@ -1,0 +1,23 @@
+{% extends "main/base.html" %}
+
+{% block content %}
+    <h1>Cambiar Rol de Usuario</h1>
+    <form action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.usuario.label }}<br>
+            {{ form.usuario(size=32) }}<br>
+            {% for error in form.usuario.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>
+            {{ form.rol.label }}<br>
+            {{ form.rol() }}<br>
+            {% for error in form.rol.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+            {% endfor %}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+{% endblock %} 

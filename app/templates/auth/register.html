@@ -74,6 +74,13 @@
                             {% endfor %}
                         </div>
                         <div class="mb-3 text-start">
+                            <label for="email" class="form-label">CORREO ELECTRÓNICO</label>
+                            {{ form.email(class="form-control", id="email") }}
+                            {% for error in form.email.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3 text-start">
                             <label for="password" class="form-label">CONTRASEÑA</label>
                             {{ form.password(class="form-control", id="password") }}
                             {% for error in form.password.errors %}

@@ -1,0 +1,75 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Usuarios y Roles{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+	<div class="card">
+		<div class="card-header bg-white d-flex justify-content-between align-items-center">
+			<h5 class="mb-0">Usuarios y Roles</h5>
+		</div>
+		<div class="card-body">
+			<div class="table-responsive">
+				<table class="table table-striped align-middle">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Nombre</th>
+							<th>Usuario</th>
+							<th>Email</th>
+							<th>Rol actual</th>
+							<th style="width: 220px;">Cambiar rol</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for u in usuarios %}
+						<tr>
+							<td>{{ u.id }}</td>
+							<td>{{ u.nombre_completo }}</td>
+							<td>{{ u.usuario }}</td>
+							<td>{{ u.email or '—' }}</td>
+							<td><span class="badge bg-info text-dark">{{ u.rol }}</span></td>
+							<td>
+								<div class="input-group input-group-sm">
+									<select class="form-select" id="rol-{{ u.id }}">
+										<option value="pendiente" {% if u.rol=='pendiente' %}selected{% endif %}>pendiente</option>
+										<option value="medico" {% if u.rol=='medico' %}selected{% endif %}>medico</option>
+										<option value="medico_supervisor" {% if u.rol=='medico_supervisor' %}selected{% endif %}>medico_supervisor</option>
+										<option value="admin" {% if u.rol=='admin' %}selected{% endif %}>admin</option>
+									</select>
+									<button class="btn btn-primary" onclick="cambiarRol({{ u.id }})">Guardar</button>
+								</div>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+async function cambiarRol(userId) {
+	const select = document.getElementById(`rol-${userId}`);
+	const rol = select.value;
+	try {
+		const resp = await fetch('{{ url_for('main.cambiar_rol_usuario') }}', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-www-form-urlencoded'
+			},
+			body: new URLSearchParams({ user_id: userId, rol })
+		});
+		const data = await resp.json();
+		if (!data.success) throw new Error(data.error || 'Error al cambiar rol');
+		alert('Rol actualizado');
+		location.reload();
+	} catch (e) {
+		alert(e.message);
+	}
+}
+</script>
+{% endblock %}
+
+

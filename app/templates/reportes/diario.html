@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h1 class="mb-4">Reporte Diario - {{ fecha.strftime('%d/%m/%Y') }}</h1>
+    <h1 class="mb-4">Reporte Diario - {% if consultas %}{{ consultas[0].fecha_consulta.strftime('%d/%m/%Y') }}{% else %}{{ "Hoy" }}{% endif %}</h1>
     
     <div class="card">
         <div class="card-header bg-primary text-white">
@@ -28,13 +28,13 @@
                         {% for consulta in consultas %}
                         <tr>
                             <td>{{ consulta.id }}</td>
-                            <td>{{ consulta.paciente.nombre_completo }}</td>
+                            <td>{{ consulta.paciente.nombre_completo if consulta.paciente else 'N/A' }}</td>
                             <td>{{ consulta.tipo_consulta }}</td>
-                            <td>{{ consulta.clinica.nombre }}</td>
-                            <td>{{ consulta.medico_id }}</td>
+                            <td>{{ consulta.clinica.nombre if consulta.clinica else 'N/A' }}</td>
+                            <td>{{ consulta.medico.nombre_completo if consulta.medico else 'N/A' }}</td>
                             <td>{{ consulta.fecha_consulta.strftime('%H:%M') }}</td>
                             <td>
-                                <a href="{{ url_for('main.consulta', consulta_id=consulta.id) }}" class="btn btn-sm btn-info">Ver Detalles</a>
+                                <a href="{{ url_for('main.consultas', consulta_id=consulta.id) }}" class="btn btn-sm btn-info">Ver Detalles</a>
                             </td>
                         </tr>
                         {% else %}

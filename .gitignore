@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos/Build
+env/
+venv/
+.venv/
+build/
+dist/
+
+# Flask/Instance
+instance/
+*.db
+*.sqlite3
+
+# Config/secretos
+.env
+*.pem
+*.key
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Credenciales
+client_secrets.json
+credentials.json
+.env
+
+# Documentación no funcional
+CONSEJOS_PRESENTACION_AUDITORIO.md
+DIAPOSITIVAS_PRESENTACION.md
+DOCUMENTACION_COMPLETA.md
+DOCUMENTACION_TECNICA_PARTE2.md
+DOCUMENTACION_TECNICA.md
+PREGUNTAS_FRECUENTES_RESPUESTAS.md
+PRESENTACION_EJECUTIVA.md
+configuracion_email.md

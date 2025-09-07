@@ -1,0 +1,116 @@
+{% extends 'main/base.html' %}
+
+{% block title %}Asignar Clínicas a Médicos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4">Asignar Clínicas a Médicos</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nombre</th>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Clínica Asignada</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for medico in medicos %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ medico.nombre_completo }}</td>
+                            <td>{{ medico.usuario }}</td>
+                            <td><span class="badge bg-secondary">{{ medico.rol.replace('_', ' ').title() }}</span></td>
+                            <td>
+                                <select class="form-select form-select-sm" id="clinica-select-{{ medico.id }}">
+                                    <option value="" {% if not medico.clinica_actual_id %}selected{% endif %}>Sin asignar</option>
+                                    {% for clinica in clinicas %}
+                                        {% if clinica.nombre in ['Clínica 1', 'Clínica 2', 'Clinica 1', 'Clinica 2'] %}
+                                        <option value="{{ clinica.id }}" {% if medico.clinica_actual_id == clinica.id %}selected{% endif %}>{{ clinica.nombre }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="d-flex gap-2">
+                                <button class="btn btn-sm btn-primary" onclick="asignarClinica({{ medico.id }})">
+                                    <i class="fas fa-save"></i> Guardar
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="eliminarMedico({{ medico.id }})">
+                                    <i class="fas fa-user-times"></i> Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function asignarClinica(medicoId) {
+    const select = document.getElementById('clinica-select-' + medicoId);
+    const clinicaId = select.value;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    const formData = new FormData();
+    formData.append('medico_id', medicoId);
+    formData.append('clinica_id', clinicaId);
+
+    try {
+        const resp = await fetch('{{ url_for('main.asignar_medico_clinica') }}', {
+            method: 'POST',
+            body: formData,
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'same-origin'
+        });
+        const data = await resp.json();
+        if (data.success) {
+            alert('Asignación actualizada');
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo asignar'));
+        }
+    } catch (e) {
+        alert('Error de red');
+    }
+}
+
+async function eliminarMedico(medicoId) {
+    if (!confirm('¿Seguro que desea eliminar este médico? Esta acción no elimina historial ni pacientes.')) return;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    try {
+        const resp = await fetch('{{ url_for('main.eliminar_medico') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken
+            },
+            credentials: 'same-origin',
+            body: new URLSearchParams({ medico_id: medicoId })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            alert('Médico eliminado');
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo eliminar'));
+        }
+    } catch (e) {
+        alert('Error de red');
+    }
+}
+</script>
+{% endblock %}
+
+

@@ -130,7 +130,6 @@
                             <th>Nombre</th>
                             <th>Edad</th>
                             <th>Sexo</th>
-                            <th>Expediente</th>
                             <th>Fecha Registro</th>
                             <th>Acciones</th>
                         </tr>
@@ -141,13 +140,6 @@
                             <td>{{ paciente.nombre_completo }}</td>
                             <td>{{ paciente.edad }} años</td>
                             <td>{{ paciente.sexo }}</td>
-                            <td>
-                                {% if paciente.expediente %}
-                                <span class="badge bg-success">Sí</span>
-                                {% else %}
-                                <span class="badge bg-secondary">No</span>
-                                {% endif %}
-                            </td>
                             <td>{{ paciente.fecha_registro.strftime('%d/%m/%Y') }}</td>
                             <td>
                                 <div class="btn-group" role="group">
@@ -173,6 +165,7 @@
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                                                 <form action="{{ url_for('pacientes.eliminar_paciente', paciente_id=paciente.id) }}" method="POST" style="display: inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <button type="submit" class="btn btn-danger">Eliminar</button>
                                                 </form>
                                             </div>

@@ -3,29 +3,45 @@ from flask_login import login_required, current_user
 from app import db
 from app.pacientes import bp
 from app.models import Paciente, Consulta, SignosVitales
+from sqlalchemy import func
 from app.pacientes.forms import PacienteForm, SignosVitalesForm, BusquedaPacienteForm
 
 @bp.route('/pacientes', methods=['GET', 'POST'])
 @login_required
 def pacientes_lista():
+    # Bloquear usuarios pendientes
+    if current_user.rol in ['pendiente', None]:
+        flash('Tu cuenta aún no ha sido aprobada por un administrador.', 'warning')
+        return redirect(url_for('auth.espera_aprobacion'))
     # Vista para el listado de pacientes con búsqueda
     form = BusquedaPacienteForm()
     
     if form.validate_on_submit() or request.method == 'POST':
-        termino = form.termino_busqueda.data
-        # Buscar por nombre o ID
-        pacientes = Paciente.query.filter(
-            (Paciente.nombre_completo.ilike(f'%{termino}%')) | 
-            (Paciente.id == termino if termino.isdigit() else False)
+        termino = (form.termino_busqueda.data or '').strip()
+        base_q = Paciente.query
+        # Si es médico, mostrar solo pacientes con consultas en su clínica actual
+        if current_user.rol == 'medico' and current_user.clinica_actual_id:
+            base_q = base_q.join(Consulta, Consulta.paciente_id == Paciente.id) \
+                .filter(Consulta.clinica_id == current_user.clinica_actual_id).distinct()
+        pacientes = base_q.filter(
+            (Paciente.nombre_completo.ilike(f'%{termino}%')) |
+            (Paciente.id == int(termino) if termino.isdigit() else False)
         ).order_by(Paciente.nombre_completo).all()
     else:
-        pacientes = Paciente.query.order_by(Paciente.nombre_completo).all()
+        base_q = Paciente.query
+        if current_user.rol == 'medico' and current_user.clinica_actual_id:
+            base_q = base_q.join(Consulta, Consulta.paciente_id == Paciente.id) \
+                .filter(Consulta.clinica_id == current_user.clinica_actual_id).distinct()
+        pacientes = base_q.order_by(Paciente.nombre_completo).all()
     
     return render_template('pacientes/lista.html', title='Pacientes', pacientes=pacientes, form=form)
 
 @bp.route('/pacientes/nuevo', methods=['GET', 'POST'])
 @login_required
 def paciente_nuevo():
+    if current_user.rol in ['pendiente', None]:
+        flash('Tu cuenta aún no ha sido aprobada por un administrador.', 'warning')
+        return redirect(url_for('auth.espera_aprobacion'))
     # Vista para registrar un nuevo paciente
     form = PacienteForm()
     if form.validate_on_submit():
@@ -33,7 +49,15 @@ def paciente_nuevo():
             nombre_completo=form.nombre_completo.data,
             edad=form.edad.data,
             sexo=form.sexo.data,
-            expediente=form.expediente.data
+            direccion=form.direccion.data,
+            telefono=form.telefono.data,
+            expediente=form.expediente.data,
+            estado_civil=form.estado_civil.data,
+            religion=form.religion.data,
+            escolaridad=form.escolaridad.data,
+            ocupacion=form.ocupacion.data,
+            procedencia=form.procedencia.data,
+            numero_expediente=form.numero_expediente.data
         )
         db.session.add(paciente)
         db.session.commit()
@@ -44,14 +68,34 @@ def paciente_nuevo():
 @bp.route('/pacientes/<int:paciente_id>', methods=['GET', 'POST'])
 @login_required
 def paciente_detalle(paciente_id):
+    if current_user.rol in ['pendiente', None]:
+        flash('Tu cuenta aún no ha sido aprobada por un administrador.', 'warning')
+        return redirect(url_for('auth.espera_aprobacion'))
     # Vista para ver y editar detalles de un paciente
     paciente = Paciente.query.get_or_404(paciente_id)
+    # Restringir acceso por clínica para médicos
+    if current_user.rol == 'medico' and current_user.clinica_actual_id:
+        pertenece = db.session.query(func.count(Consulta.id)).filter(
+            Consulta.paciente_id == paciente.id,
+            Consulta.clinica_id == current_user.clinica_actual_id
+        ).scalar()
+        if not pertenece:
+            flash('No tiene acceso a este paciente (otra clínica).', 'error')
+            return redirect(url_for('pacientes.pacientes_lista'))
     form = PacienteForm(obj=paciente)
     if form.validate_on_submit():
         paciente.nombre_completo = form.nombre_completo.data
         paciente.edad = form.edad.data
         paciente.sexo = form.sexo.data
+        paciente.direccion = form.direccion.data
+        paciente.telefono = form.telefono.data
         paciente.expediente = form.expediente.data
+        paciente.estado_civil = form.estado_civil.data
+        paciente.religion = form.religion.data
+        paciente.escolaridad = form.escolaridad.data
+        paciente.ocupacion = form.ocupacion.data
+        paciente.procedencia = form.procedencia.data
+        paciente.numero_expediente = form.numero_expediente.data
         db.session.commit()
         flash('Información del paciente actualizada')
         return redirect(url_for('pacientes.pacientes_lista'))
@@ -60,29 +104,45 @@ def paciente_detalle(paciente_id):
 @bp.route('/pacientes/<int:paciente_id>/eliminar', methods=['POST'])
 @login_required
 def eliminar_paciente(paciente_id):
-    # Vista para eliminar un paciente
+    if current_user.rol not in ['admin', 'medico_supervisor']:
+        flash('No tiene permiso para eliminar pacientes.', 'danger')
+        return redirect(url_for('pacientes.pacientes_lista'))
+
     paciente = Paciente.query.get_or_404(paciente_id)
     
-    # Verificar si el paciente tiene consultas asociadas
-    if paciente.consultas.count() > 0:
-        flash('No se puede eliminar el paciente porque tiene consultas asociadas', 'danger')
-        return redirect(url_for('pacientes.pacientes_lista'))
-    
-    nombre = paciente.nombre_completo
-    db.session.delete(paciente)
-    db.session.commit()
-    flash(f'Paciente {nombre} eliminado correctamente', 'success')
+    try:
+        # Eliminar Signos Vitales y Consultas asociadas
+        for consulta in paciente.consultas:
+            if consulta.signos_vitales:
+                db.session.delete(consulta.signos_vitales)
+            db.session.delete(consulta)
+        
+        nombre = paciente.nombre_completo
+        db.session.delete(paciente)
+        db.session.commit()
+        flash(f'Paciente {nombre} y todos sus registros han sido eliminados correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar el paciente: {str(e)}', 'danger')
+
     return redirect(url_for('pacientes.pacientes_lista'))
+
 
 @bp.route('/pacientes/<int:paciente_id>/signos_vitales', methods=['GET', 'POST'])
 @login_required
 def registrar_signos_vitales(paciente_id):
+    if current_user.rol in ['pendiente', None]:
+        flash('Tu cuenta aún no ha sido aprobada por un administrador.', 'warning')
+        return redirect(url_for('auth.espera_aprobacion'))
     # Vista para registrar signos vitales de un paciente
     paciente = Paciente.query.get_or_404(paciente_id)
     form = SignosVitalesForm()
     if form.validate_on_submit():
         # Verificar si hay una consulta activa para este paciente
-        consulta = Consulta.query.filter_by(paciente_id=paciente_id).order_by(Consulta.fecha_consulta.desc()).first()
+        consulta_q = Consulta.query.filter_by(paciente_id=paciente_id)
+        if current_user.rol == 'medico' and current_user.clinica_actual_id:
+            consulta_q = consulta_q.filter(Consulta.clinica_id == current_user.clinica_actual_id)
+        consulta = consulta_q.order_by(Consulta.fecha_consulta.desc()).first()
         
         if not consulta:
             flash('No hay una consulta activa para este paciente')

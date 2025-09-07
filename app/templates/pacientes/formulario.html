@@ -39,113 +39,112 @@
                     </div>
                 </div>
 
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Antecedentes</h5>
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <h6 style="border-bottom: 2px solid navy;">Gineco-Obstetricos</h6>
-                                <div class="row g-3">
-                                    <div class="col-md-2">
-                                        <label class="form-label">Gestas</label>
-                                        <input type="text" class="form-control form-control-sm">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Partos</label>
-                                        <input type="text" class="form-control form-control-sm">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Abortos</label>
-                                        <input type="text" class="form-control form-control-sm">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Hijos vivos</label>
-                                        <input type="text" class="form-control form-control-sm">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Hijos muertos</label>
-                                        <input type="text" class="form-control form-control-sm">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label">Fecha última regla</label>
-                                        <input type="text" class="form-control form-control-sm">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-2 text-center">
-                                <span>Fisiológicos</span>
-                            </div>
-                            <div class="col-md-2 text-center">
-                                <span>Patológicos</span>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <span>Heredo Familiares</span>
-                            </div>
-                            <div class="col-md-2 text-center">
-                                <span>Toxicológicos</span>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <span>Fact. de riesgo</span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    {{ form.direccion.label(class="form-label") }}
+                    {{ form.direccion(class="form-control") }}
+                    {% for error in form.direccion.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
                 </div>
 
-                <!-- Diagnóstico y Receta Section -->
-                <div class="card mb-3">
+                <div class="mb-3">
+                    {{ form.telefono.label(class="form-label") }}
+                    {{ form.telefono(class="form-control") }}
+                    {% for error in form.telefono.errors %}
+                    <span class="text-danger">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.expediente(class="form-check-input") }}
+                    {{ form.expediente.label(class="form-check-label ms-2") }}
+                </div>
+
+                {% if form.expediente.data %}
+                <div class="card mt-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Datos Generales</h5>
+                    </div>
                     <div class="card-body">
-                        <div class="d-flex mb-3">
-                            <div class="me-3"><a href="#" class="text-decoration-none text-dark">Datos Generales</a></div>
-                            <div class="me-3"><a href="#" class="text-decoration-none text-dark">Motivo Consulta</a></div>
-                            <div class="me-3"><a href="#" class="text-decoration-none text-dark">Diagnóstico</a></div>
-                            <div><a href="#" class="text-decoration-none text-dark" style="border-bottom: 2px solid navy;">Receta</a></div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.estado_civil.label(class="form-label") }}
+                                {{ form.estado_civil(class="form-select") }}
+                                {% for error in form.estado_civil.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.religion.label(class="form-label") }}
+                                {{ form.religion(class="form-control") }}
+                                {% for error in form.religion.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
+                            </div>
                         </div>
-                        
-                        <div class="receta-medica border p-4">
-                            <h2 class="text-center mb-3">RECETA MÉDICA</h2>
-                            <p class="text-end mb-3">FECHA: {{ fecha_actual }}</p>
-                            
-                            <div class="mb-3">
-                                <p><strong>Paciente:</strong> {{ form.nombre_completo.data }}</p>
-                                <p><strong>Edad:</strong> {{ form.edad.data }} años</p>
-                                <p><strong>Diagnóstico:</strong> <span id="diagnostico"></span></p>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.escolaridad.label(class="form-label") }}
+                                {{ form.escolaridad(class="form-select") }}
+                                {% for error in form.escolaridad.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
                             </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Medicamento:</label>
-                                <input type="text" class="form-control" id="medicamento" name="medicamento">
+                            <div class="col-md-6">
+                                {{ form.ocupacion.label(class="form-label") }}
+                                {{ form.ocupacion(class="form-control") }}
+                                {% for error in form.ocupacion.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
                             </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Dosificación:</label>
-                                <input type="text" class="form-control" id="dosificacion" name="dosificacion">
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.procedencia.label(class="form-label") }}
+                                {{ form.procedencia(class="form-control") }}
+                                {% for error in form.procedencia.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
                             </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Indicaciones:</label>
-                                <textarea class="form-control" id="indicaciones" name="indicaciones" rows="3"></textarea>
-                            </div>
-                            
-                            <div class="d-flex justify-content-between mt-4">
-                                <button type="button" class="btn btn-warning" onclick="guardarReceta()">GUARDAR</button>
-                                <button type="button" class="btn btn-primary" onclick="imprimirReceta()">IMPRIMIR</button>
+                            <div class="col-md-6">
+                                {{ form.numero_expediente.label(class="form-label") }}
+                                {{ form.numero_expediente(class="form-control") }}
+                                {% for error in form.numero_expediente.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
                 </div>
+                {% endif %}
                 
-                <div class="mb-3 form-check">
-                    {{ form.expediente(class="form-check-input") }}
-                    {{ form.expediente.label(class="form-check-label") }}
-                </div>
-                
-                <div class="text-end">
-                    <button type="submit" class="btn btn-primary">Guardar</button>
+                <div class="text-end mt-4">
+                    {{ form.submit(class="btn btn-primary") }}
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const expedienteCheckbox = document.querySelector('#expediente');
+    const datosGeneralesCard = document.querySelector('.card-header.bg-info').closest('.card');
+
+    function toggleDatosGenerales() {
+        if (expedienteCheckbox.checked) {
+            datosGeneralesCard.style.display = 'block';
+        } else {
+            datosGeneralesCard.style.display = 'none';
+        }
+    }
+
+    expedienteCheckbox.addEventListener('change', toggleDatosGenerales);
+    toggleDatosGenerales(); // Ejecutar al cargar la página
+});
+</script>
+{% endblock %}
 {% endblock %}

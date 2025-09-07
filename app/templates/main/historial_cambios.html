@@ -1,0 +1,100 @@
+{% extends 'main/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="row">
+        <!-- Historial de Roles -->
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Historial de Cambios de Roles</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Administrador</th>
+                                    <th>Usuario Modificado</th>
+                                    <th>Rol Anterior</th>
+                                    <th>Rol Nuevo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in historial_roles %}
+                                <tr>
+                                    <td>{{ item.fecha_cambio.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>{{ item.admin.nombre_completo }}</td>
+                                    <td>{{ item.usuario.nombre_completo }}</td>
+                                    <td><span class="badge bg-secondary">{{ item.rol_anterior }}</span></td>
+                                    <td><span class="badge bg-primary">{{ item.rol_nuevo }}</span></td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No hay registros de cambios de roles.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial de Asignación de Clínicas -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Historial de Asignación de Clínicas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Administrador</th>
+                                    <th>Médico</th>
+                                    <th>Clínica Anterior</th>
+                                    <th>Clínica Nueva</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in historial_clinicas %}
+                                <tr>
+                                    <td>{{ item.fecha_cambio.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>{{ item.admin.nombre_completo }}</td>
+                                    <td>{{ item.medico.nombre_completo }}</td>
+                                    <td>
+                                        {% if item.clinica_anterior %}
+                                            <span class="badge bg-secondary">{{ item.clinica_anterior.nombre }}</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">Sin Asignar</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.clinica_nueva %}
+                                            <span class="badge bg-success">{{ item.clinica_nueva.nombre }}</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">Sin Asignar</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No hay registros de asignación de clínicas.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

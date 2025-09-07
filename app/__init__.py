@@ -1,35 +1,42 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
+from flask_mail import Mail
 from config import Config
 
 db = SQLAlchemy()
-migrate = Migrate()
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Por favor inicie sesión para acceder a esta página.'
+csrf = CSRFProtect()
+mail = Mail()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    # Asegurar existencia de directorio de backups
+    from pathlib import Path
+    backup_dir = app.config.get('BACKUP_DIR')
+    if backup_dir:
+        Path(backup_dir).mkdir(parents=True, exist_ok=True)
     
     db.init_app(app)
-    migrate.init_app(app, db)
     login_manager.init_app(app)
+    csrf.init_app(app)
+    mail.init_app(app)
     
-    # Registrar blueprints
     from app.auth import bp as auth_bp
-    app.register_blueprint(auth_bp)
+    app.register_blueprint(auth_bp, url_prefix='/auth')
     
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
     
     from app.pacientes import bp as pacientes_bp
-    app.register_blueprint(pacientes_bp)
+    app.register_blueprint(pacientes_bp, url_prefix='/pacientes')
     
     from app.reportes import bp as reportes_bp
-    app.register_blueprint(reportes_bp)
+    app.register_blueprint(reportes_bp, url_prefix='/reportes')
     
     return app
 

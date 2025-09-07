@@ -1,0 +1,22 @@
+{% extends 'main/base.html' %}
+{% block content %}
+  <h2>Verificar Código</h2>
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <p>
+      {{ form.email.label }}<br>
+      {{ form.email(size=40) }}<br>
+      {% for error in form.email.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+    <p>
+      {{ form.code.label }}<br>
+      {{ form.code(size=8) }}<br>
+      {% for error in form.code.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}
+    </p>
+    <p>{{ form.submit() }}</p>
+  </form>
+{% endblock %}

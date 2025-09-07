@@ -19,7 +19,6 @@
                             <th>Nombre</th>
                             <th>Edad</th>
                             <th>Sexo</th>
-                            <th>Expediente</th>
                             <th>Fecha Registro</th>
                             <th>Acciones</th>
                         </tr>
@@ -31,13 +30,6 @@
                             <td>{{ paciente.nombre_completo }}</td>
                             <td>{{ paciente.edad }}</td>
                             <td>{{ paciente.sexo }}</td>
-                            <td>
-                                {% if paciente.expediente %}
-                                <span class="badge bg-success">Sí</span>
-                                {% else %}
-                                <span class="badge bg-warning">No</span>
-                                {% endif %}
-                            </td>
                             <td>{{ paciente.fecha_registro.strftime('%d/%m/%Y') }}</td>
                             <td>
                                 <a href="{{ url_for('pacientes.paciente_detalle', paciente_id=paciente.id) }}" class="btn btn-sm btn-info">Ver Detalles</a>
@@ -45,7 +37,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="7" class="text-center">No hay pacientes registrados</td>
+                            <td colspan="6" class="text-center">No hay pacientes registrados</td>
                         </tr>
                         {% endfor %}
                     </tbody>

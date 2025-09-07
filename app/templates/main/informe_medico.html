@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h1 class="mb-4">Consulta Médica - Clinica 1</h1>
+    <h1 class="mb-4">Consulta Médica - {{ consulta.clinica.nombre if consulta.clinica else 'Clínica' }}</h1>
     
     <div class="row">
         <div class="col-12">
@@ -13,10 +13,10 @@
                     <h2 class="text-center mb-4">Informe Médico del Paciente</h2>
                     
                     <div class="mb-4">
-                        <p><strong>Paciente:</strong> Luis Lopez</p>
-                        <p><strong>Edad:</strong> 56 años</p>
-                        <p><strong>Número de expediente:</strong></p>
-                        <p><strong>Género:</strong> Masculino</p>
+                        <p><strong>Paciente:</strong> {{ paciente.nombre_completo }}</p>
+                        <p><strong>Edad:</strong> {{ paciente.edad }} años</p>
+                        <p><strong>Número de expediente:</strong> {{ paciente.numero_expediente or '—' }}</p>
+                        <p><strong>Género:</strong> {{ paciente.sexo }}</p>
                     </div>
                     
                     <div class="mb-4">
@@ -31,10 +31,10 @@
                     
                     <div class="d-flex justify-content-between">
                         <div>
-                            <p><strong>FECHA:</strong> 24/02/2025</p>
+                            <p><strong>FECHA:</strong> {{ consulta.fecha_consulta|format_gt if consulta.fecha_consulta else '—' }}</p>
                         </div>
                         <div>
-                            <p><strong>Médico:</strong> Dr. Lopez</p>
+                            <p><strong>Médico:</strong> {{ consulta.medico.nombre_completo if consulta.medico else '—' }}</p>
                         </div>
                     </div>
                     

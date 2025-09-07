@@ -4,7 +4,18 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h1 class="mb-4">Consulta Médica - {{ consulta.clinica.nombre }}</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Consulta Médica - {{ consulta.clinica.nombre }}</h1>
+        <form method="POST" action="{{ url_for('main.consulta_diagnostico', consulta_id=consulta.id) }}" class="d-flex">
+            {{ search_form.hidden_tag() }}
+            <div class="input-group">
+                {{ search_form.query(class="form-control", placeholder="Buscar paciente por nombre o ID") }}
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
     
     <!-- Botones de selección de clínica -->
     <div class="mb-4">
@@ -23,20 +34,20 @@
                     <h5 class="mb-0">SIGNOS VITALES ACTUALES</h5>
                 </div>
                 <div class="card-body">
-                    <h4 class="text-center mb-3">Carlos López</h4>
-                    <p class="text-center text-muted">32 AÑOS - MASCULINO</p>
+                    <h4 class="text-center mb-3">{{ consulta.paciente.nombre_completo }}</h4>
+                    <p class="text-center text-muted">{{ consulta.paciente.edad }} AÑOS - {{ consulta.paciente.sexo }}</p>
                     
                     <div class="row mb-3">
                         <div class="col-6">
                             <div class="form-group">
                                 <label>Presión Arterial</label>
-                                <input type="text" class="form-control" value="140/90 mmHg" readonly>
+                                <input type="text" class="form-control" value="{{ consulta.signos_vitales.presion_arterial if consulta.signos_vitales else '--' }} mmHg" readonly>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="form-group">
                                 <label>Saturación</label>
-                                <input type="text" class="form-control" value="98%" readonly>
+                                <input type="text" class="form-control" value="{{ consulta.signos_vitales.saturacion if consulta.signos_vitales else '--' }}%" readonly>
                             </div>
                         </div>
                     </div>
@@ -45,13 +56,13 @@
                         <div class="col-6">
                             <div class="form-group">
                                 <label>Temperatura</label>
-                                <input type="text" class="form-control" value="36.8" readonly>
+                                <input type="text" class="form-control" value="{{ consulta.signos_vitales.temperatura if consulta.signos_vitales else '--' }}" readonly>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="form-group">
                                 <label>Frec. Resp.</label>
-                                <input type="text" class="form-control" value="18 rpm" readonly>
+                                <input type="text" class="form-control" value="{{ consulta.signos_vitales.frecuencia_respiratoria if consulta.signos_vitales else '--' }} rpm" readonly>
                             </div>
                         </div>
                     </div>
@@ -60,31 +71,68 @@
                         <div class="col-6">
                             <div class="form-group">
                                 <label>Frec. Card.</label>
-                                <input type="text" class="form-control" value="18 rpm" readonly>
+                                <input type="text" class="form-control" value="{{ consulta.signos_vitales.frecuencia_cardiaca if consulta.signos_vitales else '--' }} rpm" readonly>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="form-group">
                                 <label>Glucosa</label>
-                                <input type="text" class="form-control" value="112 mg/dl" readonly>
+                                <input type="text" class="form-control" value="{{ consulta.signos_vitales.glucosa if consulta.signos_vitales else '--' }} mg/dl" readonly>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Historial médico debajo de signos vitales -->
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">HISTORIAL MÉDICO</h6>
+                </div>
+                <div class="card-body p-0" style="max-height: 420px; overflow-y: auto;">
+                    <ul class="list-group list-group-flush" id="historial-list">
+                        {% if historial_consultas and historial_consultas|length > 0 %}
+                            {% for c in historial_consultas %}
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="me-2">
+                                            <div class="fw-bold">{{ c.fecha_consulta|format_gt if c.fecha_consulta else 'Sin fecha' }}</div>
+                                            <small class="text-muted">Motivo: {{ (c.motivo_consulta or '')[:60] }}{% if c.motivo_consulta and c.motivo_consulta|length > 60 %}...{% endif %}</small><br>
+                                            <small class="text-muted">Dx: {{ (c.diagnostico or '')[:60] }}{% if c.diagnostico and c.diagnostico|length > 60 %}...{% endif %}</small>
+                                        </div>
+                                        <div>
+                                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('main.informe_medico', consulta_id=c.id) }}">Ver</a>
+                                        </div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <li class="list-group-item text-center text-muted py-4">Sin consultas previas</li>
+                        {% endif %}
+                    </ul>
                 </div>
             </div>
         </div>
         
         <!-- Columna derecha - Tabs de consulta -->
         <div class="col-md-8">
+            <div class="d-flex justify-content-end mb-2">
+                <button type="button" class="btn btn-warning text-white" id="guardar-todo-btn">
+                    <i class="fas fa-save me-1"></i> Guardar toda la consulta
+                </button>
+                <button type="button" class="btn btn-success ms-2" id="finalizar-consulta-btn">
+                    <i class="fas fa-check me-1"></i> Finalizar y guardar en historial
+                </button>
+            </div>
             <ul class="nav nav-tabs" id="consultaTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="datos-tab" data-bs-toggle="tab" data-bs-target="#datos" type="button" role="tab" aria-controls="datos" aria-selected="false">Datos Generales</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="motivo-tab" data-bs-toggle="tab" data-bs-target="#motivo" type="button" role="tab" aria-controls="motivo" aria-selected="false">Motivo Consulta</button>
+                    <button class="nav-link active" id="motivo-tab" data-bs-toggle="tab" data-bs-target="#motivo" type="button" role="tab" aria-controls="motivo" aria-selected="true">Motivo Consulta</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="diagnostico-tab" data-bs-toggle="tab" data-bs-target="#diagnostico" type="button" role="tab" aria-controls="diagnostico" aria-selected="true">Descripción</button>
+                    <button class="nav-link" id="diagnostico-tab" data-bs-toggle="tab" data-bs-target="#diagnostico" type="button" role="tab" aria-controls="diagnostico" aria-selected="false">Descripción</button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="receta-tab" data-bs-toggle="tab" data-bs-target="#receta" type="button" role="tab" aria-controls="receta" aria-selected="false">Receta</button>
@@ -92,9 +140,33 @@
             </ul>
             
             <div class="tab-content" id="consultaTabsContent">
+                <!-- Tab Motivo de Consulta -->
+                <div class="tab-pane fade show active" id="motivo" role="tabpanel" aria-labelledby="motivo-tab">
+                    <form id="formMotivoConsulta" class="mt-3">
+                        <div class="form-group mb-4">
+                            <label for="motivo_consulta" class="form-label">Motivo de Consulta</label>
+                            <textarea class="form-control" id="motivo_consulta" name="motivo_consulta" rows="4" required>{{ consulta.motivo_consulta or '' }}</textarea>
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            <label for="historia_enfermedad" class="form-label">Historia de la Enfermedad Actual</label>
+                            <textarea class="form-control" id="historia_enfermedad" name="historia_enfermedad" rows="4">{{ consulta.historia_enfermedad or '' }}</textarea>
+                        </div>
+                        
+                        <div class="form-group mb-4">
+                            <label for="revision_sistemas" class="form-label">Revisión por Sistemas</label>
+                            <textarea class="form-control" id="revision_sistemas" name="revision_sistemas" rows="4">{{ consulta.revision_sistemas or '' }}</textarea>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">Guardar Motivo de Consulta</button>
+                        </div>
+                    </form>
+                </div>
+
                 <!-- Tab Diagnóstico -->
-                <div class="tab-pane fade show active" id="diagnostico" role="tabpanel" aria-labelledby="diagnostico-tab">
-                    <form method="post" action="">
+                <div class="tab-pane fade" id="diagnostico" role="tabpanel" aria-labelledby="diagnostico-tab">
+                    <form id="formDiagnostico" method="post" action="#">
                         {{ form.hidden_tag() }}
                         <div class="form-group mb-4 mt-3">
                             {{ form.descripcion.label(class="form-label") }}
@@ -111,6 +183,25 @@
                             <span class="text-danger">{{ error }}</span>
                             {% endfor %}
                         </div>
+
+                        <!-- Campos simples de Receta para guardado unificado -->
+                        <div class="border rounded p-3 mb-3">
+                            <h6 class="mb-3">Receta rápida</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Medicamento</label>
+                                    <input type="text" id="receta-medicamento" class="form-control" placeholder="Nombre del medicamento">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Dosificación</label>
+                                    <input type="text" id="receta-dosificacion" class="form-control" placeholder="Ej. 1 tab c/8h por 5 días">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Indicaciones</label>
+                                    <textarea id="receta-indicaciones" class="form-control" rows="2" placeholder="Indicaciones adicionales"></textarea>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="text-end">
                             {{ form.submit(class="btn btn-primary") }}
@@ -118,12 +209,183 @@
                     </form>
                 </div>
             </div>
-            
-            <div class="d-flex justify-content-between mt-4">
-                <button class="btn btn-warning">CANCELAR</button>
-                <button class="btn btn-success">GUARDAR</button>
-            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const formMotivoConsulta = document.getElementById('formMotivoConsulta');
+    const formDiagnostico = document.getElementById('formDiagnostico');
+    const guardarTodoBtn = document.getElementById('guardar-todo-btn');
+    const historialList = document.getElementById('historial-list');
+    
+    if (formMotivoConsulta) {
+        formMotivoConsulta.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const data = {
+                motivo_consulta: document.getElementById('motivo_consulta').value,
+                historia_enfermedad: document.getElementById('historia_enfermedad').value,
+                revision_sistemas: document.getElementById('revision_sistemas').value
+            };
+            
+            try {
+                const response = await fetch(`/consulta/{{ consulta.id }}/motivo`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('Motivo de consulta guardado correctamente');
+                    await refrescarHistorial();
+                } else {
+                    throw new Error(result.error || 'Error al guardar los datos');
+                }
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+    }
+
+    if (formDiagnostico) {
+        formDiagnostico.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const payload = {
+                diagnostico: (document.getElementById('descripcion') || {}).value || '',
+                laboratorio: (document.getElementById('laboratorio') || {}).value || ''
+            };
+            try {
+                const resp = await fetch(`/consulta/{{ consulta.id }}/diagnostico-completo`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const res = await resp.json();
+                if (!resp.ok) throw new Error(res.error || 'No se pudo guardar el diagnóstico');
+                await refrescarHistorial();
+                alert('Diagnóstico guardado correctamente');
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+    }
+
+    async function guardarTodo() {
+        const payload = {
+            motivo_consulta: (document.getElementById('motivo_consulta') || {}).value || '',
+            historia_enfermedad: (document.getElementById('historia_enfermedad') || {}).value || '',
+            revision_sistemas: (document.getElementById('revision_sistemas') || {}).value || '',
+            diagnostico: (document.getElementById('descripcion') || {}).value || '',
+            laboratorio: (document.getElementById('laboratorio') || {}).value || '',
+            medicamento: (document.getElementById('receta-medicamento') || {}).value || '',
+            dosificacion: (document.getElementById('receta-dosificacion') || {}).value || '',
+            indicaciones: (document.getElementById('receta-indicaciones') || {}).value || ''
+        };
+        try {
+            const resp = await fetch(`/consulta/{{ consulta.id }}/guardar_todo`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const res = await resp.json();
+            if (!resp.ok || !res.success) {
+                throw new Error(res.error || 'No se pudo guardar');
+            }
+            // Actualizar historial en UI
+            if (Array.isArray(res.historial) && historialList) {
+                historialList.innerHTML = '';
+                res.historial.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="me-2">
+                                <div class="fw-bold">${item.fecha || ''}</div>
+                                <small class="text-muted">Motivo: ${(item.motivo_consulta || '').slice(0,60)}${(item.motivo_consulta||'').length>60?'...':''}</small><br>
+                                <small class="text-muted">Dx: ${(item.diagnostico || '').slice(0,60)}${(item.diagnostico||'').length>60?'...':''}</small>
+                            </div>
+                            <div>
+                                <a class="btn btn-sm btn-outline-primary" href="/informe_medico/${item.id}">Ver</a>
+                            </div>
+                        </div>`;
+                    historialList.appendChild(li);
+                });
+            }
+            alert('Consulta guardada correctamente');
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    async function refrescarHistorial() {
+        try {
+            const r = await fetch(`/consulta/{{ consulta.id }}/historial`);
+            const j = await r.json();
+            if (Array.isArray(j.historial) && historialList) {
+                historialList.innerHTML = '';
+                j.historial.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="me-2">
+                                <div class="fw-bold">${item.fecha || ''}</div>
+                                <small class="text-muted">Motivo: ${(item.motivo_consulta || '').slice(0,60)}${(item.motivo_consulta||'').length>60?'...':''}</small><br>
+                                <small class="text-muted">Dx: ${(item.diagnostico || '').slice(0,60)}${(item.diagnostico||'').length>60?'...':''}</small>
+                            </div>
+                            <div>
+                                <a class="btn btn-sm btn-outline-primary" href="/informe_medico/${item.id}">Ver</a>
+                            </div>
+                        </div>`;
+                    historialList.appendChild(li);
+                });
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    if (guardarTodoBtn) guardarTodoBtn.addEventListener('click', guardarTodo);
+
+    const finalizarBtn = document.getElementById('finalizar-consulta-btn');
+    if (finalizarBtn) {
+        finalizarBtn.addEventListener('click', async function() {
+            // Reutiliza el payload de guardarTodo pero con finalizar=true
+            const payload = {
+                motivo_consulta: (document.getElementById('motivo_consulta') || {}).value || '',
+                historia_enfermedad: (document.getElementById('historia_enfermedad') || {}).value || '',
+                revision_sistemas: (document.getElementById('revision_sistemas') || {}).value || '',
+                diagnostico: (document.getElementById('descripcion') || {}).value || '',
+                laboratorio: (document.getElementById('laboratorio') || {}).value || '',
+                medicamento: (document.getElementById('receta-medicamento') || {}).value || '',
+                dosificacion: (document.getElementById('receta-dosificacion') || {}).value || '',
+                indicaciones: (document.getElementById('receta-indicaciones') || {}).value || '',
+                finalizar: true
+            };
+            try {
+                const resp = await fetch(`/consulta/{{ consulta.id }}/guardar_todo`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const res = await resp.json();
+                if (!resp.ok || !res.success) throw new Error(res.error || 'No se pudo finalizar');
+                await refrescarHistorial();
+                alert('Consulta finalizada y guardada en historial');
+            } catch (e) {
+                alert(e.message);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

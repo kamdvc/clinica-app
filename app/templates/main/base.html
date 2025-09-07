@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sistema Clínico{% endblock %}</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}Clínicas Familiares CUNORI-Shororagua{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -29,13 +30,29 @@
         .sidebar.show {
             left: 0; /* Visible cuando tiene la clase show */
         }
-        .sidebar .logo-container {
+        .sidebar         .logo-container {
             text-align: center;
             padding: 10px;
             margin-bottom: 20px;
         }
+        .logos-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            padding: 10px 0;
+        }
+        .sidebar .logo-cunori {
+            width: 75px;
+            height: 75px;
+            object-fit: contain;
+        }
         .sidebar .logo {
-            max-width: 120px;
+            width: 85px;
+            height: 85px;
+            object-fit: contain;
+            margin-top: -5px;
         }
         .sidebar .nav-link {
             color: #333;
@@ -59,73 +76,82 @@
             width: 24px;
             text-align: center;
         }
-        .content-wrapper {
-            flex: 1;
-            margin-left: 0; /* Sin margen por defecto */
-            padding: 20px;
-            background-color: #f8f9fa;
-            transition: margin-left 0.3s ease;
-        }
-        .content-wrapper.shifted {
-            margin-left: 240px; /* Con margen cuando el menú está visible */
-        }
-        .main-content {
-            background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-        }
         .header-bar {
-            background-color: #003366;
-            color: white;
+            background-color: #ffffff;
             padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: sticky;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: fixed;
             top: 0;
-            z-index: 900;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            height: 65px;
+        }
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-grow: 1;
+            justify-content: center;
+            margin: 0 20px;
+        }
+        .header-title-group h4 {
+            font-size: 1.2rem;
+            margin: 0;
+            color: #2c3e50;
+            white-space: nowrap;
+        }
+        .header-logo {
+            height: 45px;
+            width: auto;
+            object-fit: contain;
+        }
+        .sidebar h2 {
+            font-size: 1.1rem;
+            text-align: center;
+            padding: 0 10px;
+            word-wrap: break-word;
         }
         .menu-toggle {
             background: none;
             border: none;
-            color: white;
             font-size: 1.5rem;
-            cursor: pointer;
-            padding: 5px;
-        }
-        .btn-primary {
-            background-color: #39a2db;
-            border-color: #39a2db;
-        }
-        .btn-primary:hover {
-            background-color: #2980b9;
-            border-color: #2980b9;
-        }
-        .btn-warning {
-            background-color: #f39c12;
-            border-color: #f39c12;
-        }
-        .btn-danger {
-            background-color: #e74c3c;
-            border-color: #e74c3c;
-        }
-        .btn-success {
-            background-color: #2ecc71;
-            border-color: #2ecc71;
-        }
-        .tab-content {
-            padding: 20px 0;
-        }
-        .nav-tabs .nav-link {
             color: #333;
-            font-weight: 500;
+            cursor: pointer;
+            padding: 0;
         }
-        .nav-tabs .nav-link.active {
+        .menu-toggle:focus {
+            outline: none;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .main-content {
+            margin-left: 0;
+            padding: 80px 20px 20px;
+            transition: margin-left 0.3s ease;
+            flex: 1;
+        }
+        .main-content.sidebar-open {
+            margin-left: 240px;
+        }
+        .clinic-indicator {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+            padding: 5px 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        .clinic-indicator i {
+            margin-right: 5px;
             color: #39a2db;
-            font-weight: 600;
         }
-        /* Overlay para cerrar el menú en dispositivos móviles */
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -146,8 +172,25 @@
         <button class="menu-toggle" id="menuToggle">
             <i class="fas fa-bars"></i>
         </button>
-        <h4 class="mb-0">Sistema Clínico</h4>
-        <div></div> <!-- Espacio para mantener el botón a la izquierda -->
+        <div class="header-title-group">
+            <img src="{{ url_for('static', filename='img/logotipo-cunori-transparente.png') }}" alt="Logo CUNORI" class="header-logo">
+            <h4 class="mb-0">Clínicas Familiares CUNORI-Shororagua</h4>
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Clínica" class="header-logo" onerror="this.src='{{ url_for('static', filename='img/logo.JPG') }}'">
+        </div>
+        <div class="user-info">
+            {% if current_user.is_authenticated and current_user.rol in ['medico', 'medico_supervisor'] %}
+                {% if current_user.clinica_actual %}
+                <div class="clinic-indicator">
+                    <i class="fas fa-clinic-medical"></i>
+                    <span>{{ current_user.clinica_actual.nombre }}</span>
+                </div>
+                {% endif %}
+            {% endif %}
+            {% if current_user.is_authenticated %}
+            <span class="badge bg-info">{{ current_user.rol.title() }}</span>
+            <span class="ms-2">{{ current_user.nombre_completo }}</span>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Overlay para cerrar el menú al hacer clic fuera -->
@@ -155,32 +198,75 @@
 
     <div class="sidebar" id="sidebar">
         <div class="logo-container">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="logo">
-            <h2 class="mt-2">Sistema Clínico</h2>
+            <div class="logos-wrapper">
+                <img src="{{ url_for('static', filename='img/logotipo-cunori-transparente.png') }}" alt="Logo CUNORI" class="logo-cunori">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Clínica" class="logo" onerror="this.src='{{ url_for('static', filename='img/logo.JPG') }}'">
+            </div>
+            <h2 class="mt-2">Clínicas Familiares<br>CUNORI-Shororagua</h2>
         </div>
         <nav class="nav flex-column">
+            {% if current_user.is_authenticated and current_user.rol in ['medico', 'admin', 'medico_supervisor'] %}
             <a href="{{ url_for('main.recepcion') }}" class="nav-link {% if request.endpoint == 'main.recepcion' or request.endpoint == 'main.index' %}active{% endif %}">
                 <i class="fas fa-user-plus"></i> Recepción
             </a>
+            {% endif %}
+            
+            {% if current_user.is_authenticated and current_user.rol in ['medico', 'admin', 'medico_supervisor'] %}
             <a href="{{ url_for('main.consultas') }}" class="nav-link {% if request.endpoint == 'main.consultas' %}active{% endif %}">
                 <i class="fas fa-stethoscope"></i> Consultas
             </a>
+            {% endif %}
+
+            {# Enlace Estado de Clínicas removido por solicitud #}
+            
             <a href="{{ url_for('pacientes.pacientes_lista') }}" class="nav-link {% if request.endpoint == 'pacientes.pacientes_lista' %}active{% endif %}">
                 <i class="fas fa-users"></i> Pacientes
             </a>
-            <a href="{{ url_for('main.reportes') }}" class="nav-link {% if request.endpoint == 'main.reportes' %}active{% endif %}">
-                <i class="fas fa-chart-bar"></i> Reportes
+            
+            {% if current_user.is_authenticated and current_user.rol == 'admin' %}
+            <a href="{{ url_for('auth.change_role') }}" class="nav-link {% if request.endpoint == 'auth.change_role' %}active{% endif %}">
+                <i class="fas fa-user-cog"></i> Gestionar Roles
             </a>
+            {% endif %}
+
+            {% if current_user.is_authenticated and current_user.rol in ['admin', 'medico', 'medico_supervisor'] %}
+            <a href="{{ url_for('main.reportes_medicos') }}" class="nav-link {% if request.endpoint == 'main.reportes_medicos' %}active{% endif %}">
+                <i class="fas fa-chart-bar"></i> Reportes Médicos
+            </a>
+            {# <a href="{{ url_for('reportes.reportes_index') }}" class="nav-link {% if request.endpoint == 'reportes.reportes_index' %}active{% endif %}">
+                <i class="fas fa-file-alt"></i> Reportes Generales
+            </a> #}
+            {% if current_user.rol in ['admin', 'medico_supervisor'] %}
+            <a href="{{ url_for('main.asignar_clinicas') }}" class="nav-link {% if request.endpoint == 'main.asignar_clinicas' %}active{% endif %}">
+                <i class="fas fa-user-md"></i> Asignar Clínicas
+            </a>
+            <a href="{{ url_for('main.historial_cambios') }}" class="nav-link {% if request.endpoint == 'main.historial_cambios' %}active{% endif %}">
+                <i class="fas fa-history"></i> Historial de Cambios
+            </a>
+            {% endif %}
+            {% endif %}
+            
+            {% if current_user.is_authenticated %}
             <a href="{{ url_for('auth.logout') }}" class="nav-link">
-                <i class="fas fa-sign-out-alt"></i> Cerrar sesión
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
             </a>
+            {% endif %}
         </nav>
     </div>
 
-    <div class="content-wrapper" id="contentWrapper">
-        <div class="main-content">
-            {% block content %}{% endblock %}
-        </div>
+    <div class="main-content" id="mainContent">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -188,31 +274,19 @@
         document.addEventListener('DOMContentLoaded', function() {
             const menuToggle = document.getElementById('menuToggle');
             const sidebar = document.getElementById('sidebar');
-            const contentWrapper = document.getElementById('contentWrapper');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const mainContent = document.getElementById('mainContent');
+            const overlay = document.getElementById('sidebarOverlay');
             
-            // Función para alternar la visibilidad del menú
-            function toggleMenu() {
+            menuToggle.addEventListener('click', function() {
                 sidebar.classList.toggle('show');
-                sidebarOverlay.classList.toggle('show');
-                contentWrapper.classList.toggle('shifted');
-            }
+                mainContent.classList.toggle('sidebar-open');
+                overlay.classList.toggle('show');
+            });
             
-            // Evento para el botón hamburguesa
-            menuToggle.addEventListener('click', toggleMenu);
-            
-            // Cerrar el menú al hacer clic en el overlay
-            sidebarOverlay.addEventListener('click', toggleMenu);
-            
-            // Cerrar el menú al hacer clic en un enlace (en dispositivos móviles)
-            const navLinks = document.querySelectorAll('.sidebar .nav-link');
-            navLinks.forEach(link => {
-                link.addEventListener('click', function() {
-                    // Solo cerrar si estamos en un dispositivo móvil
-                    if (window.innerWidth < 992) {
-                        toggleMenu();
-                    }
-                });
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                mainContent.classList.remove('sidebar-open');
+                overlay.classList.remove('show');
             });
         });
     </script>

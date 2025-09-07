@@ -6,7 +6,31 @@ class PacienteForm(FlaskForm):
     nombre_completo = StringField('Nombre Completo', validators=[DataRequired()])
     edad = IntegerField('Edad', validators=[DataRequired(), NumberRange(min=0, max=120)])
     sexo = SelectField('Sexo', choices=[('', 'Seleccionar'), ('Masculino', 'Masculino'), ('Femenino', 'Femenino')], validators=[DataRequired()])
+    direccion = StringField('Dirección', validators=[Optional()])
+    telefono = StringField('Teléfono', validators=[Optional()])
     expediente = BooleanField('Tiene Expediente')
+    # Campos de datos generales
+    estado_civil = SelectField('Estado Civil', choices=[
+        ('', 'Seleccionar'),
+        ('Soltero/a', 'Soltero/a'),
+        ('Casado/a', 'Casado/a'),
+        ('Divorciado/a', 'Divorciado/a'),
+        ('Viudo/a', 'Viudo/a'),
+        ('Unión Libre', 'Unión Libre')
+    ], validators=[Optional()])
+    religion = StringField('Religión', validators=[Optional()])
+    escolaridad = SelectField('Escolaridad', choices=[
+        ('', 'Seleccionar'),
+        ('Ninguna', 'Ninguna'),
+        ('Primaria', 'Primaria'),
+        ('Secundaria', 'Secundaria'),
+        ('Bachillerato', 'Bachillerato'),
+        ('Universidad', 'Universidad'),
+        ('Postgrado', 'Postgrado')
+    ], validators=[Optional()])
+    ocupacion = StringField('Ocupación', validators=[Optional()])
+    procedencia = StringField('Procedencia', validators=[Optional()])
+    numero_expediente = StringField('Número de Expediente', validators=[Optional()])
     submit = SubmitField('Guardar')
 
 class BusquedaPacienteForm(FlaskForm):

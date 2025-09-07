@@ -1,6 +1,7 @@
 import pymysql
 import os
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash
 
 # Cargar variables de entorno
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -53,7 +54,7 @@ try:
         password_hash VARCHAR(128) NOT NULL,
         fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
         activo BOOLEAN DEFAULT TRUE,
-        rol VARCHAR(20) DEFAULT 'recepcion'
+        rol VARCHAR(20) DEFAULT 'medico'
     )
     """)
     
@@ -111,13 +112,13 @@ try:
     )
     """)
     
-    # Insertar datos de ejemplo
-    # Insertar un usuario administrador
+    # Insertar un usuario administrador con contraseña hasheada correctamente
+    admin_password = generate_password_hash('M3d1c@lC1!n1c#2025$Adm9&')
     cursor.execute("""
     INSERT INTO usuario (nombre_completo, usuario, password_hash, rol)
-    SELECT 'Administrador', 'admin', 'pbkdf2:sha256:150000$nrABZ8Wy$a4a2f0e3a7c2b2d9b8e7f6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a0', 'admin'
+    SELECT 'Administrador', 'admin', %s, 'admin'
     WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE usuario = 'admin')
-    """)
+    """, (admin_password,))
     
     # Insertar clínicas de ejemplo
     cursor.execute("""
@@ -144,7 +145,7 @@ try:
     print("Tablas creadas correctamente y datos de ejemplo insertados.")
     print("\nCredenciales de acceso:")
     print("Usuario: admin")
-    print("Contraseña: admin123")
+    print("Contraseña: M3d1c@lC1!n1c#2025$Adm9&")
     
     cursor.close()
     conn.close()
