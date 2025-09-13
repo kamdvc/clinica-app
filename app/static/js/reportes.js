@@ -198,8 +198,28 @@ document.addEventListener('DOMContentLoaded', function() {
     function crearGraficoConsultasMes(data) {
         const ctx = document.getElementById('consultasMesChart').getContext('2d');
         
-        const labels = Object.keys(data);
-        const valores = Object.values(data);
+        // Ordenar por año y mes basado en etiquetas tipo "Mes Año"
+        function ordenarMesesData(dataObj) {
+            const ordenMes = {
+                'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
+                'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+            };
+            const items = Object.entries(dataObj).map(([clave, valor]) => {
+                const partes = clave.split(' ');
+                const mesNombre = partes[0];
+                const anio = parseInt(partes[1], 10);
+                return { clave, valor, anio, mesNum: ordenMes[mesNombre] || 0 };
+            });
+            items.sort((a, b) => (a.anio !== b.anio) ? a.anio - b.anio : a.mesNum - b.mesNum);
+            return {
+                labels: items.map(i => i.clave),
+                valores: items.map(i => i.valor)
+            };
+        }
+
+        const ordenado = ordenarMesesData(data);
+        const labels = ordenado.labels;
+        const valores = ordenado.valores;
         
         charts.consultasMes = new Chart(ctx, {
             type: 'line',

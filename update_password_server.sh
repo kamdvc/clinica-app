@@ -73,3 +73,19 @@ echo "📁 Backup guardado en: $backup_dir"
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

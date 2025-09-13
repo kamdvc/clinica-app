@@ -29,3 +29,19 @@ echo "✅ Archivos actualizados. Ejecuta: python reset_admin.py"
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

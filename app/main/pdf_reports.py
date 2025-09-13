@@ -20,6 +20,14 @@ from app.main.plot_generator import plot_genero, plot_edades_rangos, plot_consul
 # Importar decorador de roles y variable de disponibilidad de ReportLab
 from .routes import role_required, REPORTLAB_AVAILABLE
 
+# Helper seguro para obtener fecha en Guatemala (con fallback si no existe tzdata)
+def _fecha_guatemala_str(formato='%d/%m/%Y'):
+    try:
+        return datetime.now(ZoneInfo('America/Guatemala')).strftime(formato)
+    except Exception:
+        # Fallback: hora local del sistema
+        return datetime.now().strftime(formato)
+
 @bp.route('/exportar_reportes_pdf')
 @login_required
 @role_required('medico', 'admin')
@@ -224,7 +232,7 @@ def generar_receta_pdf(consulta_id):
     # Información del Paciente y Fecha
     paciente_info_style = styles['Normal']
     paciente_info = [
-        [Paragraph(f"<b>Paciente:</b> {paciente.nombre_completo}", paciente_info_style), Paragraph(f"<b>Fecha:</b> {datetime.now().astimezone(ZoneInfo('America/Guatemala')).strftime('%d/%m/%Y')}", paciente_info_style)],
+        [Paragraph(f"<b>Paciente:</b> {paciente.nombre_completo}", paciente_info_style), Paragraph(f"<b>Fecha:</b> {_fecha_guatemala_str()}", paciente_info_style)],
         [Paragraph(f"<b>Edad:</b> {paciente.edad} años", paciente_info_style), ""]
     ]
     paciente_table = Table(paciente_info, colWidths=[3.5*inch, 2.5*inch])

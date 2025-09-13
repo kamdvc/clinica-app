@@ -36,3 +36,6 @@ class Config:
 
     # reCAPTCHA (opcional)
     RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
+
+    # Configuración de tiempo de sesión
+    PERMANENT_SESSION_LIFETIME = 15 * 60  # 15 minutos en segundos

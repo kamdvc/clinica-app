@@ -1,9 +1,10 @@
-from flask import Flask
+from flask import Flask, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
 from config import Config
+from datetime import timedelta
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -15,6 +16,14 @@ mail = Mail()
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    
+    # Configuración del tiempo de vida de la sesión
+    app.permanent_session_lifetime = timedelta(seconds=app.config['PERMANENT_SESSION_LIFETIME'])
+
+    @app.before_request
+    def make_session_permanent():
+        session.permanent = True
+
     # Asegurar existencia de directorio de backups
     from pathlib import Path
     backup_dir = app.config.get('BACKUP_DIR')

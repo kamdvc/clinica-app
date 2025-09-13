@@ -43,3 +43,6 @@ DOCUMENTACION_TECNICA.md
 PREGUNTAS_FRECUENTES_RESPUESTAS.md
 PRESENTACION_EJECUTIVA.md
 configuracion_email.md
+
+# Dependencias de Node.js
+node_modules/

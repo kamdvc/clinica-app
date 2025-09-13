@@ -1419,14 +1419,17 @@ function findOrCreateConsultaForPatient(patient) {
         return;
     }
 
-    // No hay consulta en progreso: crear una nueva (AJAX)
+    // No hay consulta en progreso: crear una nueva (AJAX) enviando el tipo si está marcado en recepción
+    const tipoSeleccionado = document.querySelector('input[name="tipo_consulta"]:checked')?.value || null;
     fetch(`/consulta/nueva_ajax/${patient.id}`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': getCSRFToken(),
             'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
-        }
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ tipo_consulta: tipoSeleccionado })
     })
     .then(response => response.json())
     .then(result => {
