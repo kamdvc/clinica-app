@@ -68,6 +68,7 @@ class Paciente(db.Model):
     procedencia = db.Column(db.String(100))
     numero_expediente = db.Column(db.String(50))
     consultas = db.relationship('Consulta', backref='paciente', lazy='dynamic')
+    signos_vitales_iniciales = db.relationship('SignosVitales', foreign_keys='SignosVitales.paciente_id', backref='paciente_inicial', lazy='dynamic')
     
     def to_dict(self):
         return {
@@ -90,7 +91,8 @@ class SignosVitales(db.Model):
     saturacion = db.Column(db.Integer)
     glucosa = db.Column(db.Integer)
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
-    consulta_id = db.Column(db.Integer, db.ForeignKey('consulta.id'))
+    paciente_id = db.Column(db.Integer, db.ForeignKey('paciente.id'), nullable=True)  # Para signos iniciales sin consulta
+    consulta_id = db.Column(db.Integer, db.ForeignKey('consulta.id'), nullable=True)  # Ahora es opcional
     
     def to_dict(self):
         return {

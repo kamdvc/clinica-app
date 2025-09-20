@@ -114,3 +114,11 @@ Write-Host "🎉 ¡Configuración completada! Ahora ejecuta 'python run.py' en e
 
 
 
+
+
+
+
+
+
+
+

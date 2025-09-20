@@ -72,7 +72,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             document.getElementById('direccion_paciente').textContent = paciente.direccion;
                             document.getElementById('telefono_paciente').textContent = paciente.telefono;
                             const dpiLabel = document.getElementById('dpi_paciente');
-                            if (dpiLabel) dpiLabel.textContent = paciente.dni || 'No registrado';
+                            if (dpiLabel) {
+                                const dpiFormateado = formatearDPITexto(paciente.dni);
+                                dpiLabel.textContent = dpiFormateado || 'No registrado';
+                            }
                             
                             // Mostrar el formulario para paciente existente
                             toggleForms(true);
@@ -110,6 +113,208 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Se removió la lógica de disponibilidad de clínicas y asignación
 });
+
+// Función de validación del formulario
+function validarFormulario() {
+    console.log('Validando formulario...');
+    
+    // Obtener valores de los campos requeridos
+    const nombre = document.getElementById('nombre_completo').value.trim();
+    const edad = document.getElementById('edad').value.trim();
+    const sexo = document.getElementById('sexo').value.trim();
+    const tipoConsulta = document.querySelector('input[name="tipo_consulta"]:checked');
+    
+    // Validar campos requeridos
+    if (!nombre) {
+        alert('El nombre completo es requerido.');
+        document.getElementById('nombre_completo').focus();
+        return false;
+    }
+    
+    if (nombre.length < 2 || nombre.length > 100) {
+        alert('El nombre debe tener entre 2 y 100 caracteres.');
+        document.getElementById('nombre_completo').focus();
+        return false;
+    }
+    
+    if (!edad || isNaN(edad) || parseInt(edad) < 0 || parseInt(edad) > 120) {
+        alert('La edad debe ser un número válido entre 0 y 120.');
+        document.getElementById('edad').focus();
+        return false;
+    }
+    
+    if (!sexo) {
+        alert('Debe seleccionar el sexo.');
+        document.getElementById('sexo').focus();
+        return false;
+    }
+    
+    if (!tipoConsulta) {
+        alert('Debe seleccionar el tipo de consulta.');
+        document.querySelector('input[name="tipo_consulta"]').focus();
+        return false;
+    }
+    
+    // Validar DPI si se proporcionó
+    const dpi = document.getElementById('dni').value.trim();
+    if (dpi) {
+        // Remover espacios para contar solo dígitos
+        const soloDigitos = dpi.replace(/\D/g, '');
+        
+        if (soloDigitos.length > 0 && soloDigitos.length !== 13) {
+            alert('El DPI debe tener exactamente 13 dígitos. Actual: ' + soloDigitos.length + ' dígitos.');
+            document.getElementById('dni').focus();
+            return false;
+        }
+        
+        // Verificar formato correcto (#### ##### ####)
+        if (soloDigitos.length === 13 && !/^\d{4} \d{5} \d{4}$/.test(dpi)) {
+            alert('Formato de DPI incorrecto. Use el formato: #### ##### ####');
+            document.getElementById('dni').focus();
+            return false;
+        }
+    }
+    
+    // Validar teléfono si se proporcionó
+    const telefono = document.getElementById('telefono').value.trim();
+    if (telefono && !/^[0-9\-\s\+\(\)]+$/.test(telefono)) {
+        alert('El teléfono solo puede contener números, guiones, espacios y paréntesis.');
+        document.getElementById('telefono').focus();
+        return false;
+    }
+    
+    // Validar signos vitales si se proporcionaron
+    const saturacion = document.querySelector('input[name="saturacion"]').value;
+    const temperatura = document.querySelector('input[name="temperatura"]').value;
+    const frecRespiratoria = document.querySelector('input[name="frec_respiratoria"]').value;
+    const frecCardiaca = document.querySelector('input[name="frec_cardiaca"]').value;
+    const glucosa = document.querySelector('input[name="glucosa"]').value;
+    
+    if (saturacion && (parseInt(saturacion) < 70 || parseInt(saturacion) > 100)) {
+        alert('La saturación debe estar entre 70 y 100%.');
+        document.querySelector('input[name="saturacion"]').focus();
+        return false;
+    }
+    
+    if (temperatura && (parseFloat(temperatura) < 30 || parseFloat(temperatura) > 45)) {
+        alert('La temperatura debe estar entre 30 y 45°C.');
+        document.querySelector('input[name="temperatura"]').focus();
+        return false;
+    }
+    
+    if (frecRespiratoria && (parseInt(frecRespiratoria) < 8 || parseInt(frecRespiratoria) > 40)) {
+        alert('La frecuencia respiratoria debe estar entre 8 y 40 respiraciones por minuto.');
+        document.querySelector('input[name="frec_respiratoria"]').focus();
+        return false;
+    }
+    
+    if (frecCardiaca && (parseInt(frecCardiaca) < 40 || parseInt(frecCardiaca) > 200)) {
+        alert('La frecuencia cardíaca debe estar entre 40 y 200 latidos por minuto.');
+        document.querySelector('input[name="frec_cardiaca"]').focus();
+        return false;
+    }
+    
+    if (glucosa && (parseInt(glucosa) < 50 || parseInt(glucosa) > 400)) {
+        alert('La glucosa debe estar entre 50 y 400 mg/dL.');
+        document.querySelector('input[name="glucosa"]').focus();
+        return false;
+    }
+    
+    console.log('Formulario validado correctamente. Datos a enviar:');
+    console.log('Nombre:', nombre);
+    console.log('DPI:', dpi);
+    console.log('Edad:', edad);
+    console.log('Sexo:', sexo);
+    console.log('Tipo consulta:', tipoConsulta ? tipoConsulta.value : 'No seleccionado');
+    console.log('Signos vitales:', {saturacion, temperatura, frecRespiratoria, frecCardiaca, glucosa});
+    
+    return true;
+}
+
+// Función para limpiar el campo nombre (permitir solo letras, espacios y tildes)
+function limpiarNombre(input) {
+    // Permitir letras básicas, letras con tildes/acentos, ñ/Ñ, y espacios
+    // Incluye caracteres latinos extendidos más comunes
+    const valorLimpio = input.value.replace(/[^a-zA-ZáéíóúàèìòùäëïöüâêîôûñÑÁÉÍÓÚÀÈÌÒÙÄËÏÖÜÂÊÎÔÛ\s]/g, '');
+    
+    if (input.value !== valorLimpio) {
+        console.log('Caracteres no permitidos removidos del nombre:', input.value, '→', valorLimpio);
+        input.value = valorLimpio;
+    }
+}
+
+// Función para permitir solo números en el DPI
+function soloNumerosDPI(event) {
+    // Permitir teclas de control (backspace, delete, tab, escape, enter)
+    if ([8, 9, 27, 13, 46].indexOf(event.keyCode) !== -1 ||
+        // Permitir Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+        (event.keyCode === 65 && event.ctrlKey === true) ||
+        (event.keyCode === 67 && event.ctrlKey === true) ||
+        (event.keyCode === 86 && event.ctrlKey === true) ||
+        (event.keyCode === 88 && event.ctrlKey === true)) {
+        return true;
+    }
+    
+    // Permitir solo números (0-9)
+    if ((event.keyCode < 48 || event.keyCode > 57) && 
+        (event.keyCode < 96 || event.keyCode > 105)) {
+        event.preventDefault();
+        return false;
+    }
+    
+    return true;
+}
+
+// Función para formatear automáticamente el DPI
+function formatearDPI(input) {
+    // Obtener solo los números (remover espacios y otros caracteres)
+    let value = input.value.replace(/\D/g, '');
+    
+    // Limitar a máximo 13 dígitos
+    if (value.length > 13) {
+        value = value.substring(0, 13);
+    }
+    
+    // Aplicar formato según la cantidad de dígitos
+    let formattedValue = '';
+    
+    if (value.length > 0) {
+        // Primeros 4 dígitos
+        formattedValue = value.substring(0, 4);
+        
+        if (value.length > 4) {
+            // Agregar espacio y siguientes 5 dígitos
+            formattedValue += ' ' + value.substring(4, 9);
+            
+            if (value.length > 9) {
+                // Agregar espacio y últimos 4 dígitos
+                formattedValue += ' ' + value.substring(9, 13);
+            }
+        }
+    }
+    
+    // Actualizar el valor del input
+    input.value = formattedValue;
+    
+    // Debug para verificar el formateo
+    console.log('DPI formateado:', formattedValue, '- Dígitos:', value.length);
+}
+
+// Función para formatear DPI para visualización (texto estático)
+function formatearDPITexto(dpi) {
+    if (!dpi) return '';
+    
+    // Obtener solo los números
+    const value = dpi.toString().replace(/\D/g, '');
+    
+    // Si no tiene exactamente 13 dígitos, devolver como está
+    if (value.length !== 13) {
+        return dpi;
+    }
+    
+    // Formatear como #### ##### ####
+    return value.substring(0, 4) + ' ' + value.substring(4, 9) + ' ' + value.substring(9, 13);
+}
 </script>
 {% endblock %}
 
@@ -245,37 +450,54 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h5 class="mb-0">Registro de Nuevo Paciente</h5>
             </div>
             <div class="card-body">
-                <form id="formNuevo" method="post" action="{{ url_for('main.registrar_paciente') }}">
+                <form id="formNuevo" method="post" action="{{ url_for('main.registrar_paciente') }}" onsubmit="return validarFormulario()">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
-                        <label for="nombre_completo" class="form-label">Nombre Completo</label>
-                        <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" required>
+                        <label for="nombre_completo" class="form-label">Nombre Completo <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nombre_completo" name="nombre_completo" 
+                               required minlength="2" maxlength="100"
+                               oninput="limpiarNombre(this)">
+                        <div class="invalid-feedback">
+                            El nombre completo es requerido y debe tener entre 2 y 100 caracteres.
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="dni" class="form-label">DPI (Documento Personal de Identificación)</label>
-                        <input type="text" class="form-control" id="dni" name="dni" placeholder="0000 00000 0000" maxlength="25">
+                        <input type="text" class="form-control" id="dni" name="dni" 
+                               maxlength="16"
+                               oninput="formatearDPI(this)" 
+                               onkeypress="return soloNumerosDPI(event)"
+                               title="Ingrese solo números">
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label for="edad" class="form-label">Edad</label>
-                            <input type="number" class="form-control" id="edad" name="edad" required>
+                            <label for="edad" class="form-label">Edad <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="edad" name="edad" 
+                                   required min="0" max="120">
+                            <div class="invalid-feedback">
+                                La edad es requerida y debe estar entre 0 y 120 años.
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <label for="sexo" class="form-label">Sexo</label>
+                            <label for="sexo" class="form-label">Sexo <span class="text-danger">*</span></label>
                             <select class="form-select" id="sexo" name="sexo" required>
                                 <option value="">Seleccionar</option>
                                 <option value="Masculino">Masculino</option>
                                 <option value="Femenino">Femenino</option>
                             </select>
+                            <div class="invalid-feedback">
+                                El sexo es requerido.
+                            </div>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label for="direccion" class="form-label">Dirección</label>
-                        <input type="text" class="form-control" id="direccion" name="direccion">
+                        <input type="text" class="form-control" id="direccion" name="direccion" maxlength="200">
                     </div>
                     <div class="mb-3">
                         <label for="telefono" class="form-label">Teléfono</label>
-                        <input type="text" class="form-control" id="telefono" name="telefono">
+                        <input type="text" class="form-control" id="telefono" name="telefono" 
+                               maxlength="20" pattern="[0-9\-\s\+\(\)]+" title="Solo números, guiones, espacios y paréntesis">
                     </div>
                     
                     <!-- Tipo de Consulta -->
@@ -303,27 +525,27 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label for="presion_arterial" class="form-label">Presión Arterial</label>
-                                <input type="text" class="form-control" name="presion_arterial" placeholder="120/80">
+                                <input type="text" class="form-control" name="presion_arterial">
                             </div>
                             <div class="col-md-4">
                                 <label for="saturacion" class="form-label">Saturación</label>
-                                <input type="number" class="form-control" name="saturacion" placeholder="95">
+                                <input type="number" class="form-control" name="saturacion" min="70" max="100">
                             </div>
                             <div class="col-md-4">
                                 <label for="temperatura" class="form-label">Temperatura</label>
-                                <input type="number" step="0.1" class="form-control" name="temperatura">
+                                <input type="number" step="0.1" class="form-control" name="temperatura" min="30" max="45">
                             </div>
                             <div class="col-md-4">
                                 <label for="frec_respiratoria" class="form-label">Frec. Respiratoria</label>
-                                <input type="number" class="form-control" name="frec_respiratoria">
+                                <input type="number" class="form-control" name="frec_respiratoria" min="8" max="40">
                             </div>
                             <div class="col-md-4">
                                 <label for="frec_cardiaca" class="form-label">Frec. Cardíaca</label>
-                                <input type="number" class="form-control" name="frec_cardiaca">
+                                <input type="number" class="form-control" name="frec_cardiaca" min="40" max="200">
                             </div>
                             <div class="col-md-4">
                                 <label for="glucosa" class="form-label">Glucosa</label>
-                                <input type="number" class="form-control" name="glucosa">
+                                <input type="number" class="form-control" name="glucosa" min="50" max="400">
                             </div>
                         </div>
                     </div>

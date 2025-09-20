@@ -72,10 +72,16 @@ def filtered_consultas_query():
 
 
 def filtered_pacientes_query():
-    """Pacientes visibles. Médico solo ve los con consultas en su clínica actual."""
+    """Pacientes visibles. Médico ve todos los pacientes (pueden registrar y luego crear consultas)."""
+    # CAMBIO IMPORTANTE: Médicos ahora pueden ver todos los pacientes
+    # Esto permite que vean pacientes recién registrados antes de crear la primera consulta
     if current_user.rol == 'medico' and current_user.clinica_actual_id:
-        return Paciente.query.join(Consulta, Consulta.paciente_id == Paciente.id) \
-            .filter(Consulta.clinica_id == current_user.clinica_actual_id).distinct()
+        # Opción 1: Ver todos los pacientes (más simple y práctico)
+        return Paciente.query
+        
+        # Opción 2 (comentada): Solo pacientes con consultas en su clínica
+        # return Paciente.query.join(Consulta, Consulta.paciente_id == Paciente.id) \
+        #     .filter(Consulta.clinica_id == current_user.clinica_actual_id).distinct()
     return Paciente.query
 
 @bp.route('/')
@@ -90,7 +96,8 @@ def index():
     if current_user.rol in ['medico', 'medico_supervisor']:
         if current_user.rol == 'medico' and not current_user.clinica_actual_id:
             return redirect(url_for('main.clinicas'))
-        return redirect(url_for('main.consultas'))
+        # CAMBIO: Médicos con clínica asignada ahora van a Recepción inicialmente
+        return redirect(url_for('main.recepcion'))
     return redirect(url_for('main.recepcion'))
 
 @bp.route('/recepcion', methods=['GET', 'POST'])
@@ -141,20 +148,24 @@ def recepcion():
             db.session.add(paciente)
             db.session.commit()
             
-            # Si hay una clínica disponible, crear consulta
-            clinica_disponible = Clinica.query.filter_by(disponible=True).first()
+            # Si hay una clínica disponible, crear consulta. Para médicos, usar su clínica actual
+            if current_user.rol == 'medico' and current_user.clinica_actual_id:
+                clinica_disponible = Clinica.query.get(current_user.clinica_actual_id)
+            else:
+                clinica_disponible = Clinica.query.filter_by(disponible=True).first()
             if clinica_disponible and tipo_consulta:
                 consulta = Consulta(
                     paciente_id=paciente.id,
                     tipo_consulta=tipo_consulta,
                     clinica_id=clinica_disponible.id,
+                    medico_id=current_user.id,
                     estado='en_progreso'
                 )
                 db.session.add(consulta)
                 db.session.commit()
                 
-                # Registrar signos vitales si se proporcionaron
-                if presion_arterial or frecuencia_cardiaca or temperatura:
+                # Registrar signos vitales si se proporcionó CUALQUIER campo
+                if any([presion_arterial, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, saturacion, glucosa]):
                     signos_vitales = SignosVitales(
                         presion_arterial=presion_arterial,
                         frecuencia_cardiaca=frecuencia_cardiaca,
@@ -194,6 +205,7 @@ def search_patients():
                     'id': consulta.id,
                     'fecha': consulta.fecha_consulta.strftime('%d/%m/%Y %H:%M') if consulta.fecha_consulta else '',
                     'tipo_consulta': consulta.tipo_consulta or 'General',
+                    'estado': consulta.estado or 'en_progreso',
                     'medico': consulta.medico.nombre_completo if consulta.medico else 'No especificado',
                     'motivo_consulta': consulta.motivo_consulta or '',
                     'historia_enfermedad': consulta.historia_enfermedad or '',
@@ -267,17 +279,34 @@ def get_patient_info(patient_id):
 @bp.route('/get_vitals/<int:patient_id>', methods=['GET'])
 @login_required
 def get_vitals(patient_id):
-    # Priorizar la consulta más reciente que tenga signos vitales registrados
-    consulta = filtered_consultas_query().filter_by(paciente_id=patient_id)\
-        .options(joinedload(Consulta.signos_vitales))\
-        .order_by(Consulta.fecha_consulta.desc())\
-        .first()
-
+    """Devuelve los signos vitales más recientes del paciente, robusto a diferentes flujos."""
+    # 1) Intentar obtener por relación desde la consulta más reciente
+    consulta = (filtered_consultas_query()
+        .filter_by(paciente_id=patient_id)
+        .options(joinedload(Consulta.signos_vitales))
+        .order_by(Consulta.fecha_consulta.desc())
+        .first())
     if consulta and consulta.signos_vitales:
-        # Asumiendo que hay una relación uno a uno o que quieres los primeros signos vitales
-        vitals = consulta.signos_vitales[0] if isinstance(consulta.signos_vitales, list) else consulta.signos_vitales
-        return jsonify(vitals.to_dict())
+        sv = consulta.signos_vitales if not isinstance(consulta.signos_vitales, list) else consulta.signos_vitales[0]
+        return jsonify(sv.to_dict())
+
+    # 2) Fallback: Buscar en SignosVitales unido a Consulta por paciente, ordenado por fecha de registro
+    sv_directo = (SignosVitales.query
+        .join(Consulta, Consulta.id == SignosVitales.consulta_id)
+        .filter(Consulta.paciente_id == patient_id)
+        .order_by(SignosVitales.fecha_registro.desc())
+        .first())
+    if sv_directo:
+        return jsonify(sv_directo.to_dict())
     
+    # 3) Último fallback: Buscar signos vitales iniciales (sin consulta)
+    sv_inicial = (SignosVitales.query
+        .filter(SignosVitales.paciente_id == patient_id, SignosVitales.consulta_id == None)
+        .order_by(SignosVitales.fecha_registro.desc())
+        .first())
+    if sv_inicial:
+        return jsonify(sv_inicial.to_dict())
+
     return jsonify({})
 
 @bp.route('/registrar_consulta', methods=['POST'])
@@ -287,46 +316,41 @@ def registrar_consulta():
     if request.method == 'POST':
         paciente_id = request.form.get('paciente_id')
         tipo_consulta = request.form.get('tipo_consulta')
-        # clinica_id ahora es opcional. Si no se envía, y el usuario es médico, usar su clínica actual
-        clinica_id = request.form.get('clinica_id') or (
-            str(current_user.clinica_actual_id) if getattr(current_user, 'clinica_actual_id', None) and current_user.rol == 'medico' else None
-        )
         
-        # Verificar datos mínimos requeridos
         if not all([paciente_id, tipo_consulta]):
-            flash('Faltan datos requeridos para registrar la consulta', 'error')
+            flash('Faltan datos requeridos (paciente o tipo de consulta)', 'error')
             return redirect(url_for('main.recepcion'))
+
+        # Si el médico está logueado, usar su clínica actual. Si es admin, puede que no tenga una.
+        clinica_id = None
+        if current_user.rol in ['medico', 'medico_supervisor'] and current_user.clinica_actual_id:
+            clinica_id = current_user.clinica_actual_id
         
-        clinica = None
-        if clinica_id:
-            clinica = Clinica.query.get(clinica_id)
-            if not clinica:
-                flash('La clínica seleccionada no existe', 'error')
-                return redirect(url_for('main.recepcion'))
-            # Médico solo puede registrar en su clínica actual
-            if current_user.rol == 'medico':
-                redirect_resp = require_clinic_selected_redirect()
-                if redirect_resp:
-                    return redirect_resp
-                if int(clinica_id) != int(current_user.clinica_actual_id):
-                    flash('Solo puede registrar consultas en su clínica actual.', 'error')
-                    return redirect(url_for('main.recepcion'))
-        
+        # Si no se pudo determinar una clínica, es un error de flujo.
+        if not clinica_id:
+            flash('No se pudo determinar la clínica para la consulta. Asegúrese de tener una clínica asignada.', 'error')
+            return redirect(url_for('main.recepcion'))
+
+        clinica = Clinica.query.get(clinica_id)
+        if not clinica:
+            flash('La clínica asignada no es válida.', 'error')
+            return redirect(url_for('main.recepcion'))
+
         try:
-            # Crear la consulta
-            # Evitar crear duplicado si existe en progreso
-            consulta_existente = Consulta.query.filter_by(paciente_id=paciente_id, estado='en_progreso') \
-                .order_by(Consulta.fecha_consulta.desc()).first()
+            # Reutilizar consulta en progreso si existe, en lugar de bloquear
+            consulta_existente = Consulta.query.filter_by(paciente_id=paciente_id, estado='en_progreso').first()
+            
             if consulta_existente:
                 consulta = consulta_existente
+                flash('Se reutilizó una consulta ya activa para el paciente.', 'info')
             else:
                 consulta = Consulta(
-                paciente_id=paciente_id,
-                tipo_consulta=tipo_consulta,
-                clinica_id=clinica.id if clinica else None,
-                medico_id=current_user.id,
-                fecha_consulta=datetime.now(),
-                estado='en_progreso'
+                    paciente_id=paciente_id,
+                    tipo_consulta=tipo_consulta,
+                    clinica_id=clinica.id,
+                    medico_id=current_user.id,
+                    fecha_consulta=datetime.now(),
+                    estado='en_progreso'
                 )
                 db.session.add(consulta)
             
@@ -374,43 +398,171 @@ def registrar_paciente():
     if request.method == 'POST':
         try:
             # Datos del paciente
-            nombre_completo = request.form.get('nombre_completo')
-            edad = request.form.get('edad')
-            sexo = request.form.get('sexo')
-            direccion = request.form.get('direccion')
-            telefono = request.form.get('telefono')
-            dni = request.form.get('dni')
+            nombre_completo = request.form.get('nombre_completo', '').strip()
+            edad = request.form.get('edad', '').strip()
+            sexo = request.form.get('sexo', '').strip()
+            direccion = request.form.get('direccion', '').strip()
+            telefono = request.form.get('telefono', '').strip()
+            dni = request.form.get('dni', '').strip()
             clinica_id = current_user.clinica_actual_id if current_user.rol == 'medico' else request.form.get('clinica_id')
             # Nota: ya no usamos tipo_consulta al registrar paciente
-            tipo_consulta = request.form.get('tipo_consulta')
+            tipo_consulta = request.form.get('tipo_consulta', '').strip()
+            
+            # DEBUG: Log de todos los datos recibidos
+            print(f"DEBUG REGISTRO - Datos recibidos:")
+            print(f"  Nombre: '{nombre_completo}' (tipo: {type(nombre_completo)}, longitud: {len(nombre_completo) if nombre_completo else 'None'})")
+            try:
+                print(f"  Nombre codificado: {nombre_completo.encode('utf-8') if nombre_completo else 'None'}")
+            except Exception as e:
+                print(f"  ERROR en codificación del nombre: {e}")
+            print(f"  DPI: '{dni}'")
+            print(f"  Edad: '{edad}'")
+            print(f"  Sexo: '{sexo}'")
+            print(f"  Dirección: '{direccion}'")
+            print(f"  Teléfono: '{telefono}'")
+            print(f"  Tipo consulta: '{tipo_consulta}'")
             
             # Verificar datos requeridos (sin exigir tipo_consulta)
-            if not all([nombre_completo, edad, sexo]):
-                flash('Faltan datos requeridos del paciente', 'error')
+            if not nombre_completo:
+                flash('El nombre completo es requerido', 'error')
                 return redirect(url_for('main.recepcion'))
             
-            # Validar DPI duplicado si se envió
+            if not edad or not edad.isdigit():
+                flash('La edad debe ser un número válido', 'error')
+                return redirect(url_for('main.recepcion'))
+                
+            if not sexo:
+                flash('El sexo es requerido', 'error')
+                return redirect(url_for('main.recepcion'))
+            
+            # Validar DPI duplicado si se envió (normalizar espacios)
             if dni:
-                existente = Paciente.query.filter(Paciente.dni == dni).first()
+                dni_normalizado = ' '.join(dni.split())  # Normalizar espacios múltiples
+                existente = Paciente.query.filter(Paciente.dni == dni_normalizado).first()
                 if existente:
-                    flash('El DPI ya está registrado para otro paciente.', 'error')
+                    flash(f'El DPI "{dni_normalizado}" ya está registrado para el paciente: {existente.nombre_completo}', 'error')
                     return redirect(url_for('main.recepcion'))
+                dni = dni_normalizado  # Usar el DPI normalizado
 
-            # Crear paciente
+            # Crear paciente (convertir edad a int)
+            try:
+                edad_int = int(edad)
+            except ValueError:
+                flash('La edad debe ser un número válido', 'error')
+                return redirect(url_for('main.recepcion'))
+                
             paciente = Paciente(
                 nombre_completo=nombre_completo,
-                edad=edad,
+                edad=edad_int,
                 sexo=sexo,
-                direccion=direccion,
-                telefono=telefono,
-                dni=dni,
+                direccion=direccion if direccion else None,
+                telefono=telefono if telefono else None,
+                dni=dni if dni else None,
                 fecha_registro=datetime.utcnow()
             )
+            
+            print(f"DEBUG: Creando paciente con datos:")
+            print(f"  Nombre: {paciente.nombre_completo}")
+            print(f"  Edad: {paciente.edad} (tipo: {type(paciente.edad)})")
+            print(f"  Sexo: {paciente.sexo}")
+            print(f"  DPI: {paciente.dni}")
+            
             db.session.add(paciente)
-            # No crear consulta automáticamente para no contaminar reportes
-            # Los signos vitales iniciales deberán registrarse al iniciar la consulta
+            db.session.flush()  # Para obtener el ID del paciente
+            
+            print(f"DEBUG: Paciente creado con ID: {paciente.id}")
+            
+            # Si hay signos vitales, guardarlos como "iniciales" (sin crear consulta falsa)
+            presion_arterial = request.form.get('presion_arterial', '').strip()
+            frecuencia_cardiaca_str = request.form.get('frec_cardiaca', '').strip()
+            frecuencia_respiratoria_str = request.form.get('frec_respiratoria', '').strip()
+            temperatura_str = request.form.get('temperatura', '').strip()
+            saturacion_str = request.form.get('saturacion', '').strip()
+            glucosa_str = request.form.get('glucosa', '').strip()
+            
+            # Convertir signos vitales a tipos apropiados
+            frecuencia_cardiaca = None
+            frecuencia_respiratoria = None
+            temperatura = None
+            saturacion = None
+            glucosa = None
+            
+            try:
+                if frecuencia_cardiaca_str:
+                    frecuencia_cardiaca = int(frecuencia_cardiaca_str)
+                    if frecuencia_cardiaca < 40 or frecuencia_cardiaca > 200:
+                        flash(f'Frecuencia cardíaca fuera de rango normal (40-200): {frecuencia_cardiaca}', 'warning')
+                        frecuencia_cardiaca = None
+                        
+                if frecuencia_respiratoria_str:
+                    frecuencia_respiratoria = int(frecuencia_respiratoria_str)
+                    if frecuencia_respiratoria < 8 or frecuencia_respiratoria > 40:
+                        flash(f'Frecuencia respiratoria fuera de rango normal (8-40): {frecuencia_respiratoria}', 'warning')
+                        frecuencia_respiratoria = None
+                        
+                if temperatura_str:
+                    temperatura = float(temperatura_str)
+                    if temperatura < 30 or temperatura > 45:
+                        flash(f'Temperatura fuera de rango normal (30-45°C): {temperatura}', 'warning')
+                        temperatura = None
+                        
+                if saturacion_str:
+                    saturacion = int(saturacion_str)
+                    if saturacion < 70 or saturacion > 100:
+                        flash(f'Saturación fuera de rango normal (70-100%): {saturacion}', 'warning')
+                        saturacion = None
+                        
+                if glucosa_str:
+                    glucosa = int(glucosa_str)
+                    if glucosa < 50 or glucosa > 400:
+                        flash(f'Glucosa fuera de rango normal (50-400 mg/dL): {glucosa}', 'warning')
+                        glucosa = None
+                        
+            except ValueError as e:
+                print(f"ERROR en conversión de signos vitales: {e}")
+                flash('Error en los valores de signos vitales. Verifica que sean números válidos.', 'warning')
+                # Continuar sin signos vitales en lugar de fallar
+            
+            # Debug signos vitales
+            print(f"DEBUG SIGNOS VITALES:")
+            print(f"  Presión: '{presion_arterial}'")
+            print(f"  FC: {frecuencia_cardiaca}")
+            print(f"  FR: {frecuencia_respiratoria}")
+            print(f"  Temp: {temperatura}")
+            print(f"  Sat: {saturacion}")
+            print(f"  Glucosa: {glucosa}")
+            
+            if any([presion_arterial, frecuencia_cardiaca, frecuencia_respiratoria, temperatura, saturacion, glucosa]):
+                # Crear signos vitales iniciales SIN consulta (no contamina reportes)
+                signos_vitales = SignosVitales(
+                    presion_arterial=presion_arterial if presion_arterial else None,
+                    frecuencia_cardiaca=frecuencia_cardiaca,
+                    frecuencia_respiratoria=frecuencia_respiratoria,
+                    temperatura=temperatura,
+                    saturacion=saturacion,
+                    glucosa=glucosa,
+                    paciente_id=paciente.id,  # Asociado al paciente, no a consulta
+                    consulta_id=None  # Sin consulta para no contaminar reportes
+                )
+                db.session.add(signos_vitales)
+                print(f"DEBUG: Signos vitales agregados para paciente {paciente.id}")
             
             db.session.commit()
+            print(f"DEBUG: COMMIT EXITOSO - Paciente {nombre_completo} guardado en BD")
+            
+            # VERIFICACIÓN ADICIONAL: Confirmar que el paciente existe en BD
+            paciente_verificacion = Paciente.query.filter_by(id=paciente.id).first()
+            if paciente_verificacion:
+                print(f"✅ VERIFICACIÓN EXITOSA: Paciente ID {paciente.id} existe en BD")
+                print(f"  Nombre en BD: {paciente_verificacion.nombre_completo}")
+                print(f"  DPI en BD: {paciente_verificacion.dni}")
+            else:
+                print(f"❌ ERROR: Paciente ID {paciente.id} NO se encuentra en BD después del commit")
+            
+            # Verificar búsqueda también
+            pacientes_visibles = filtered_pacientes_query().count()
+            print(f"DEBUG: Total pacientes visibles para este usuario: {pacientes_visibles}")
+            
             flash(f'Paciente {nombre_completo} registrado correctamente', 'success')
             
             # Permanecer en Recepción después de registrar paciente
@@ -418,7 +570,17 @@ def registrar_paciente():
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al registrar el paciente: {str(e)}', 'error')
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"ERROR COMPLETO al registrar paciente:")
+            print(f"  Error: {str(e)}")
+            print(f"  Traceback: {error_details}")
+            print(f"  Datos que causaron error:")
+            print(f"    Nombre: '{request.form.get('nombre_completo', 'N/A')}'")
+            print(f"    DPI: '{request.form.get('dni', 'N/A')}'")
+            print(f"    Edad: '{request.form.get('edad', 'N/A')}'")
+            print(f"    Sexo: '{request.form.get('sexo', 'N/A')}'")
+            flash(f'Error al registrar el paciente. Por favor revise los datos e intente de nuevo.', 'error')
             return redirect(url_for('main.recepcion'))
     
     return redirect(url_for('main.recepcion'))
@@ -1060,68 +1222,120 @@ def nueva_consulta(paciente_id):
 @login_required
 def nueva_consulta_ajax(paciente_id):
     """Crea una consulta en progreso y devuelve JSON (flujo AJAX desde consultas.js)."""
-    paciente = Paciente.query.get_or_404(paciente_id)
-    if current_user.rol == 'medico' and current_user.clinica_actual_id:
-        clinica_disponible = Clinica.query.get(current_user.clinica_actual_id)
-    else:
-        # Preferir una disponible; si no hay, tomar cualquier clínica
-        clinica_disponible = Clinica.query.filter_by(disponible=True).first() or Clinica.query.first()
-    
-    # Intentar obtener tipo de consulta enviado por el cliente
-    incoming_tipo = None
     try:
-        if request.is_json:
-            incoming_tipo = (request.get_json() or {}).get('tipo_consulta')
+        paciente = Paciente.query.get_or_404(paciente_id)
+        if current_user.rol == 'medico' and current_user.clinica_actual_id:
+            clinica_disponible = Clinica.query.get(current_user.clinica_actual_id)
         else:
-            incoming_tipo = request.form.get('tipo_consulta')
-    except Exception:
+            # Preferir una disponible; si no hay, tomar cualquier clínica
+            clinica_disponible = Clinica.query.filter_by(disponible=True).first() or Clinica.query.first()
+
+        # Intentar obtener tipo de consulta enviado por el cliente
         incoming_tipo = None
+        try:
+            if request.is_json:
+                incoming_tipo = (request.get_json(silent=True) or {}).get('tipo_consulta')
+            else:
+                incoming_tipo = request.form.get('tipo_consulta')
+        except Exception:
+            incoming_tipo = None
 
-    # Si no viene, inferir por historial: primera si no hay previas, seguimiento si ya existen
-    if not incoming_tipo:
-        tiene_previas = Consulta.query.filter_by(paciente_id=paciente.id).count() > 0
-        incoming_tipo = 'Seguimiento' if tiene_previas else 'Primera consulta'
+        # Si no viene, inferir por historial: primera si no hay previas, seguimiento si ya existen
+        if not incoming_tipo:
+            tiene_previas = Consulta.query.filter_by(paciente_id=paciente.id).count() > 0
+            incoming_tipo = 'Seguimiento' if tiene_previas else 'Primera consulta'
 
-    # Reutilizar consulta EN PROGRESO si existe para evitar duplicados
-    existente = Consulta.query \
-        .filter_by(paciente_id=paciente.id, estado='en_progreso') \
-        .order_by(Consulta.fecha_consulta.desc()) \
-        .first()
-    if existente:
-        # Actualizar tipo si aún no estaba definido o estaba en valor genérico
-        if not existente.tipo_consulta or existente.tipo_consulta in ['Consulta médica', 'General', 'Primera consulta', 'Seguimiento', 'Medicamento'] and incoming_tipo:
-            existente.tipo_consulta = incoming_tipo
-            db.session.commit()
+        # Reutilizar consulta EN PROGRESO si existe para evitar duplicados
+        existente = (Consulta.query
+            .filter_by(paciente_id=paciente.id, estado='en_progreso')
+            .order_by(Consulta.fecha_consulta.desc())
+            .first())
+        if existente:
+            # Actualizar tipo si aún no estaba definido o estaba en valor genérico
+            if (not existente.tipo_consulta or existente.tipo_consulta in ['Consulta médica', 'General', 'Primera consulta', 'Seguimiento', 'Medicamento']) and incoming_tipo:
+                existente.tipo_consulta = incoming_tipo
+                db.session.commit()
+            # Si la consulta existente no tiene signos vitales, intentar copiar de la última consulta con SV
+            if not existente.signos_vitales:
+                ultima_con_sv = (Consulta.query
+                    .filter(Consulta.paciente_id == paciente.id, Consulta.signos_vitales != None)
+                    .order_by(Consulta.fecha_consulta.desc())
+                    .first())
+                if ultima_con_sv and ultima_con_sv.signos_vitales:
+                    sv_prev = ultima_con_sv.signos_vitales
+                    nuevo_sv = SignosVitales(
+                        presion_arterial=sv_prev.presion_arterial,
+                        frecuencia_cardiaca=sv_prev.frecuencia_cardiaca,
+                        frecuencia_respiratoria=sv_prev.frecuencia_respiratoria,
+                        temperatura=sv_prev.temperatura,
+                        saturacion=sv_prev.saturacion,
+                        glucosa=sv_prev.glucosa,
+                        consulta_id=existente.id
+                    )
+                    db.session.add(nuevo_sv)
+                    db.session.commit()
+            return jsonify({
+                'success': True,
+                'consulta': {
+                    'id': existente.id,
+                    'paciente_id': paciente.id,
+                    'fecha': existente.fecha_consulta.strftime('%d/%m/%Y %H:%M') if existente.fecha_consulta else '',
+                    'tipo_consulta': existente.tipo_consulta or incoming_tipo,
+                    'estado': existente.estado,
+                    'signos_vitales': (existente.signos_vitales.to_dict() if existente.signos_vitales else None),
+                    'presion_arterial': existente.presion_arterial or (existente.signos_vitales.presion_arterial if existente.signos_vitales else ''),
+                    'frecuencia_cardiaca': existente.frecuencia_cardiaca or (existente.signos_vitales.frecuencia_cardiaca if existente.signos_vitales else ''),
+                    'frecuencia_respiratoria': existente.frecuencia_respiratoria or (existente.signos_vitales.frecuencia_respiratoria if existente.signos_vitales else ''),
+                    'temperatura': existente.temperatura or (existente.signos_vitales.temperatura if existente.signos_vitales else ''),
+                    'saturacion_oxigeno': existente.saturacion_oxigeno or (existente.signos_vitales.saturacion if existente.signos_vitales else ''),
+                    'glucosa': (existente.signos_vitales.glucosa if existente.signos_vitales else '')
+                }
+            })
+
+        consulta = Consulta(
+            paciente_id=paciente.id,
+            tipo_consulta=incoming_tipo,
+            clinica_id=(clinica_disponible.id if clinica_disponible else None),
+            medico_id=current_user.id,
+            estado='en_progreso',
+            fecha_consulta=datetime.now()
+        )
+        db.session.add(consulta)
+        db.session.commit()
+
+        # Buscar signos vitales iniciales (sin consulta) y asociarlos a esta primera consulta real
+        try:
+            signos_iniciales = (SignosVitales.query
+                .filter(SignosVitales.paciente_id == paciente.id, SignosVitales.consulta_id == None)
+                .order_by(SignosVitales.fecha_registro.desc())
+                .first())
+            if signos_iniciales:
+                # Asociar los signos iniciales a esta consulta real
+                signos_iniciales.consulta_id = consulta.id
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+
         return jsonify({
             'success': True,
             'consulta': {
-                'id': existente.id,
+                'id': consulta.id,
                 'paciente_id': paciente.id,
-                'fecha': existente.fecha_consulta.strftime('%d/%m/%Y %H:%M') if existente.fecha_consulta else '',
-                'tipo_consulta': existente.tipo_consulta or incoming_tipo,
-                'estado': existente.estado
+                'fecha': consulta.fecha_consulta.strftime('%d/%m/%Y %H:%M') if consulta.fecha_consulta else '',
+                'tipo_consulta': consulta.tipo_consulta or incoming_tipo,
+                'estado': consulta.estado,
+                'signos_vitales': (consulta.signos_vitales.to_dict() if consulta.signos_vitales else None),
+                'presion_arterial': consulta.presion_arterial or (consulta.signos_vitales.presion_arterial if consulta.signos_vitales else ''),
+                'frecuencia_cardiaca': consulta.frecuencia_cardiaca or (consulta.signos_vitales.frecuencia_cardiaca if consulta.signos_vitales else ''),
+                'frecuencia_respiratoria': consulta.frecuencia_respiratoria or (consulta.signos_vitales.frecuencia_respiratoria if consulta.signos_vitales else ''),
+                'temperatura': consulta.temperatura or (consulta.signos_vitales.temperatura if consulta.signos_vitales else ''),
+                'saturacion_oxigeno': consulta.saturacion_oxigeno or (consulta.signos_vitales.saturacion if consulta.signos_vitales else ''),
+                'glucosa': (consulta.signos_vitales.glucosa if consulta.signos_vitales else '')
             }
         })
-    consulta = Consulta(
-        paciente_id=paciente.id,
-        tipo_consulta=incoming_tipo,
-        clinica_id=(clinica_disponible.id if clinica_disponible else None),
-        medico_id=current_user.id,
-        estado='en_progreso',
-        fecha_consulta=datetime.now()
-    )
-    db.session.add(consulta)
-    db.session.commit()
-    return jsonify({
-        'success': True,
-        'consulta': {
-            'id': consulta.id,
-            'paciente_id': paciente.id,
-            'fecha': consulta.fecha_consulta.strftime('%d/%m/%Y %H:%M') if consulta.fecha_consulta else '',
-            'tipo_consulta': consulta.tipo_consulta or incoming_tipo,
-            'estado': consulta.estado
-        }
-    })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @bp.route('/consulta/<int:consulta_id>/motivo', methods=['POST'])
 @login_required
@@ -1492,12 +1706,26 @@ def buscar_pacientes():
         
         # Formatear historial de consultas
         historial_consultas = []
-        signos_vitales = None
+        
+        # FIX: Consultar los signos vitales más recientes (incluye iniciales sin consulta)
+        # 1) Primero buscar por consultas
+        sv_recientes = (SignosVitales.query
+            .join(Consulta, Consulta.id == SignosVitales.consulta_id)
+            .filter(Consulta.paciente_id == paciente.id)
+            .order_by(SignosVitales.fecha_registro.desc())
+            .first())
+        
+        # 2) Si no hay, buscar signos iniciales (sin consulta)
+        if not sv_recientes:
+            sv_recientes = (SignosVitales.query
+                .filter(SignosVitales.paciente_id == paciente.id, SignosVitales.consulta_id == None)
+                .order_by(SignosVitales.fecha_registro.desc())
+                .first())
+        
+        signos_vitales = sv_recientes.to_dict() if sv_recientes else None
         
         for consulta in consultas:
-            # Obtener signos vitales de la consulta más reciente para el panel lateral
-            if not signos_vitales and consulta.signos_vitales:
-                signos_vitales = consulta.signos_vitales.to_dict()
+            # Eliminar la asignación anterior que podía fallar
             
             # Agregar consulta al historial
             consulta_data = {

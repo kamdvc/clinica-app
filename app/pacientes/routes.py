@@ -16,23 +16,20 @@ def pacientes_lista():
     # Vista para el listado de pacientes con búsqueda
     form = BusquedaPacienteForm()
     
+    # Importar la función corregida
+    from app.main.routes import filtered_pacientes_query
+    
     if form.validate_on_submit() or request.method == 'POST':
         termino = (form.termino_busqueda.data or '').strip()
-        base_q = Paciente.query
-        # Si es médico, mostrar solo pacientes con consultas en su clínica actual
-        if current_user.rol == 'medico' and current_user.clinica_actual_id:
-            base_q = base_q.join(Consulta, Consulta.paciente_id == Paciente.id) \
-                .filter(Consulta.clinica_id == current_user.clinica_actual_id).distinct()
+        # Usar la función corregida que permite ver pacientes recién registrados
+        base_q = filtered_pacientes_query()
         pacientes = base_q.filter(
             (Paciente.nombre_completo.ilike(f'%{termino}%')) |
             (Paciente.id == int(termino) if termino.isdigit() else False)
         ).order_by(Paciente.nombre_completo).all()
     else:
-        base_q = Paciente.query
-        if current_user.rol == 'medico' and current_user.clinica_actual_id:
-            base_q = base_q.join(Consulta, Consulta.paciente_id == Paciente.id) \
-                .filter(Consulta.clinica_id == current_user.clinica_actual_id).distinct()
-        pacientes = base_q.order_by(Paciente.nombre_completo).all()
+        # Usar la función corregida para listado completo
+        pacientes = filtered_pacientes_query().order_by(Paciente.nombre_completo).all()
     
     return render_template('pacientes/lista.html', title='Pacientes', pacientes=pacientes, form=form)
 

@@ -196,32 +196,8 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 console.error('❌ No se encontró elemento patient-gender');
             }
-            // Actualizar signos vitales si existen
-            if (patient.signos_vitales) {
-                console.log('🔍 Actualizando signos vitales:', patient.signos_vitales);
-                const updateVitalElement = (id, value, suffix = '') => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.textContent = value ? `${value}${suffix}` : '--';
-                    } else {
-                        console.error(`❌ No se encontró elemento ${id}`);
-                    }
-                };
-                updateVitalElement('vital-presion-arterial', patient.signos_vitales.presion_arterial);
-                updateVitalElement('vital-saturacion', patient.signos_vitales.saturacion, '%');
-                updateVitalElement('vital-temperatura', patient.signos_vitales.temperatura);
-                updateVitalElement('vital-frecuencia-respiratoria', patient.signos_vitales.frecuencia_respiratoria, ' rpm');
-                updateVitalElement('vital-frecuencia-cardiaca', patient.signos_vitales.frecuencia_cardiaca, ' rpm');
-                updateVitalElement('vital-glucosa', patient.signos_vitales.glucosa, ' mg/dl');
-            } else {
-                console.log('⚠️ Sin signos vitales - limpiar panel');
-                // Limpiar signos vitales
-                const vitalIds = ['vital-presion-arterial', 'vital-saturacion', 'vital-temperatura', 'vital-frecuencia-respiratoria', 'vital-frecuencia-cardiaca', 'vital-glucosa'];
-                vitalIds.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = '--';
-                });
-            }
+            // Actualizar signos vitales tomando fuente disponible
+            updateVitalsPanelFromPatient(patient);
             // Actualizar campos de datos generales
             updateGeneralDataFields(patient);
             // Actualizar información en la pestaña de receta
@@ -234,6 +210,8 @@ document.addEventListener('DOMContentLoaded', function () {
             updateMedicalHistory(patient);
             // Buscar la consulta más reciente del paciente
             findOrCreateConsultaForPatient(patient);
+            // Intentar traer signos vitales directamente del backend por si el payload inicial no los trae
+            fetchAndUpdateVitals(patient.id);
             // Forzar asignación de id si existe
             if (patient.historial_consultas && patient.historial_consultas.length > 0 && patient.historial_consultas[0].id) {
                 consultaActual = patient.historial_consultas[0];
@@ -439,6 +417,9 @@ document.addEventListener('DOMContentLoaded', function () {
         historialContainer.innerHTML = historialHTML;
         console.log(`✅ Historial médico actualizado con ${historial.length} consulta(s)`);
     }
+
+    // Exponer para usos fuera de este bloque
+    window.updateMedicalHistory = updateMedicalHistory;
 
     // Función global para mostrar detalles completos de una consulta
     window.showConsultaDetails = function(consultaId, fecha) {
@@ -1416,6 +1397,8 @@ function findOrCreateConsultaForPatient(patient) {
         console.log("Consulta en progreso encontrada:", consultaActiva);
         enableAutoSaveForConsulta(consultaActiva);
         loadPatientDataInTabs(consultaActiva);
+        // Refrescar panel de signos desde la consulta activa si trae datos
+        updateVitalsPanelFromConsulta(consultaActiva);
         return;
     }
 
@@ -1425,23 +1408,38 @@ function findOrCreateConsultaForPatient(patient) {
         method: 'POST',
         headers: {
             'X-CSRFToken': getCSRFToken(),
+            'X-CSRF-Token': getCSRFToken(),
             'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
+        credentials: 'same-origin',
         body: JSON.stringify({ tipo_consulta: tipoSeleccionado })
     })
-    .then(response => response.json())
+    .then(async response => {
+        if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            throw new Error(`HTTP ${response.status} ${text?.slice(0, 200)}`);
+        }
+        const ct = response.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+            const text = await response.text().catch(() => '');
+            throw new Error(`Respuesta no JSON del servidor: ${text?.slice(0, 200)}`);
+        }
+        return response.json();
+    })
     .then(result => {
-        if (result && result.success && result.consulta && result.consulta.id) {
-            const data = result.consulta;
+        // Aceptar dos formatos: {success, consulta:{...}} o directamente {id, ...}
+        const data = (result && result.success && result.consulta) ? result.consulta
+                   : (result && result.id ? result : null);
+        if (data && data.id) {
             consultaActiva = data;
             consultaActual = data;
             // Insertar la nueva consulta al inicio del historial del paciente en memoria
             if (!Array.isArray(window.currentPatient.historial_consultas)) {
                 window.currentPatient.historial_consultas = [];
             }
-            window.currentPatient.historial_consultas.unshift({
+            const nuevoItemHistorial = {
                 id: data.id,
                 fecha: data.fecha,
                 tipo_consulta: data.tipo_consulta,
@@ -1453,19 +1451,50 @@ function findOrCreateConsultaForPatient(patient) {
                 diagnostico: '',
                 tratamiento: '',
                 estado: data.estado,
-                signos_vitales: null
-            });
-            // Actualizar panel de historial en UI
+                signos_vitales: data.signos_vitales || null,
+                presion_arterial: data.presion_arterial || '',
+                frecuencia_cardiaca: data.frecuencia_cardiaca || '',
+                frecuencia_respiratoria: data.frecuencia_respiratoria || '',
+                temperatura: data.temperatura || '',
+                saturacion_oxigeno: data.saturacion_oxigeno || '',
+                glucosa: data.glucosa || ''
+            };
+            window.currentPatient.historial_consultas.unshift(nuevoItemHistorial);
+            // También colgar signos vitales en el paciente para que selectPatient los tome
+            if (nuevoItemHistorial.signos_vitales) {
+                window.currentPatient.signos_vitales = nuevoItemHistorial.signos_vitales;
+            } else if (
+                nuevoItemHistorial.presion_arterial || nuevoItemHistorial.temperatura ||
+                nuevoItemHistorial.frecuencia_cardiaca || nuevoItemHistorial.frecuencia_respiratoria ||
+                nuevoItemHistorial.saturacion_oxigeno || nuevoItemHistorial.glucosa
+            ) {
+                window.currentPatient.signos_vitales = {
+                    presion_arterial: nuevoItemHistorial.presion_arterial,
+                    temperatura: nuevoItemHistorial.temperatura,
+                    frecuencia_cardiaca: nuevoItemHistorial.frecuencia_cardiaca,
+                    frecuencia_respiratoria: nuevoItemHistorial.frecuencia_respiratoria,
+                    saturacion: nuevoItemHistorial.saturacion_oxigeno,
+                    glucosa: nuevoItemHistorial.glucosa
+                };
+            }
+            // Actualizar panel de historial en UI y signos vitales del panel
             updateMedicalHistory(window.currentPatient);
             enableAutoSaveForConsulta(data);
             loadPatientDataInTabs(data);
+            // Refrescar el panel de signos vitales inmediatamente
+            updateVitalsPanelFromConsulta(data);
         } else {
+            console.error('Respuesta inesperada al crear consulta:', result);
             alert('No se pudo crear una consulta activa para este paciente.');
         }
     })
     .catch(error => {
         console.error('Error al crear nueva consulta:', error);
-        alert('No se pudo crear una consulta activa para este paciente.');
+        const lower = String(error).toLowerCase();
+        const sessionMsg = (lower.includes('login') || lower.includes('inicie sesión') || lower.includes('unauthorized'))
+            ? 'Sesión expirada. Por favor, vuelve a iniciar sesión e inténtalo de nuevo.'
+            : null;
+        alert(sessionMsg || ('No se pudo crear una consulta activa para este paciente.\n' + String(error).slice(0, 200)));
     });
 }
 
@@ -1588,6 +1617,77 @@ function loadPatientDataInTabs(consulta) {
             }
         });
     }
+}
+
+/**
+ * Actualiza el panel de signos vitales desde el objeto de paciente e historial
+ */
+function updateVitalsPanelFromPatient(patient) {
+    const historial = Array.isArray(patient.historial_consultas) ? patient.historial_consultas : [];
+    const consultaConSV = historial.find(c => c && c.signos_vitales) || historial[0] || null;
+    const vitalsSource = patient.signos_vitales || (consultaConSV && consultaConSV.signos_vitales) || (consultaConSV ? {
+        presion_arterial: consultaConSV.presion_arterial,
+        temperatura: consultaConSV.temperatura,
+        frecuencia_cardiaca: consultaConSV.frecuencia_cardiaca,
+        frecuencia_respiratoria: consultaConSV.frecuencia_respiratoria,
+        saturacion: consultaConSV.saturacion || consultaConSV.saturacion_oxigeno,
+        glucosa: consultaConSV.glucosa
+    } : null);
+
+    const updateVitalElement = (id, value, suffix = '') => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = value ? `${value}${suffix}` : '--';
+        }
+    };
+
+    if (vitalsSource) {
+        updateVitalElement('vital-presion-arterial', vitalsSource.presion_arterial);
+        updateVitalElement('vital-saturacion', vitalsSource.saturacion, '%');
+        updateVitalElement('vital-temperatura', vitalsSource.temperatura);
+        updateVitalElement('vital-frecuencia-respiratoria', vitalsSource.frecuencia_respiratoria, ' rpm');
+        updateVitalElement('vital-frecuencia-cardiaca', vitalsSource.frecuencia_cardiaca, ' rpm');
+        updateVitalElement('vital-glucosa', vitalsSource.glucosa, ' mg/dl');
+    } else {
+        ['vital-presion-arterial','vital-saturacion','vital-temperatura','vital-frecuencia-respiratoria','vital-frecuencia-cardiaca','vital-glucosa']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '--'; });
+    }
+}
+
+/**
+ * Actualiza el panel de signos vitales directamente desde un objeto consulta
+ */
+function updateVitalsPanelFromConsulta(consulta) {
+    const sv = consulta?.signos_vitales || null;
+    const source = sv ? {
+        presion_arterial: sv.presion_arterial,
+        temperatura: sv.temperatura,
+        frecuencia_cardiaca: sv.frecuencia_cardiaca,
+        frecuencia_respiratoria: sv.frecuencia_respiratoria,
+        saturacion: sv.saturacion,
+        glucosa: sv.glucosa
+    } : {
+        presion_arterial: consulta.presion_arterial,
+        temperatura: consulta.temperatura,
+        frecuencia_cardiaca: consulta.frecuencia_cardiaca,
+        frecuencia_respiratoria: consulta.frecuencia_respiratoria,
+        saturacion: consulta.saturacion || consulta.saturacion_oxigeno,
+        glucosa: consulta.glucosa
+    };
+    updateVitalsPanelFromPatient({ historial_consultas: [{ signos_vitales: source }], signos_vitales: source });
+}
+
+// Obtiene signos vitales del backend y actualiza el panel
+function fetchAndUpdateVitals(patientId) {
+    if (!patientId) return;
+    fetch(`/get_vitals/${patientId}`, { headers: { 'Accept': 'application/json' } })
+        .then(r => r.ok ? r.json() : {})
+        .then(vitals => {
+            if (vitals && (vitals.presion_arterial || vitals.temperatura || vitals.frecuencia_cardiaca || vitals.frecuencia_respiratoria || vitals.saturacion || vitals.glucosa)) {
+                updateVitalsPanelFromPatient({ signos_vitales: vitals, historial_consultas: [{ signos_vitales: vitals }] });
+            }
+        })
+        .catch(() => {});
 }
 
 /**
