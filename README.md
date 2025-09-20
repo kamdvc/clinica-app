@@ -1,6 +1,6 @@
-# Sistema Clínico - Facultad de Ciencias Médicas
+# Clínicas Familiares CUNORI-Shororagua
 
-Sistema de gestión clínica para la Facultad de Ciencias Médicas de la Universidad de San Carlos de Guatemala.
+Sistema de gestión clínica para la Facultad de Ciencias Médicas de CUNORI.
 
 ## Características
 
